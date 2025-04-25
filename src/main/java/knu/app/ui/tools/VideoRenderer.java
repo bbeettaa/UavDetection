@@ -15,14 +15,14 @@ import knu.app.ui.LocalizationManager;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.Java2DFrameConverter;
 
+import javax.annotation.Nullable;
 import java.awt.image.BufferedImage;
 import java.util.concurrent.ExecutorService;
 
-public class VideoRenderer<T> implements UIModule<T> {
+public class VideoRenderer implements UIModule<Frame> {
     private final Bufferable<Frame> frameBuffer;
     private final UiTexturable texture;
     private final Java2DFrameConverter converter;
-    private final ExecutorService executor;
 
     private final ImBoolean keepAspectRatio;
     private final ImBoolean keepCentered;
@@ -30,7 +30,6 @@ public class VideoRenderer<T> implements UIModule<T> {
     private final ImFloat aspectY;
     private final ImBoolean isOp;
 
-    // Атомарная ссылка для хранения последнего кадра
     private final Bufferable<BufferedImage> imageBuffer;
     private volatile boolean isRendering = false;
 
@@ -44,9 +43,8 @@ public class VideoRenderer<T> implements UIModule<T> {
                     ImGuiWindowFlags.NoScrollWithMouse |
                     ImGuiWindowFlags.NoBringToFrontOnFocus;
 
-    public VideoRenderer(Bufferable<Frame> frameBuffer, ExecutorService executor, StatisticDisplayUI stat) {
+    public VideoRenderer(Bufferable<Frame> frameBuffer,  StatisticDisplayUI stat) {
         this.frameBuffer = frameBuffer;
-        this.executor = executor;
         this.isOp = new ImBoolean(false);
         this.keepAspectRatio = new ImBoolean(true);
         this.keepCentered = new ImBoolean(true);
@@ -55,8 +53,7 @@ public class VideoRenderer<T> implements UIModule<T> {
 //        this.texture = new CpuImageTexture();
         this.texture = new FastOpenGLTexture();
         this.converter = new Java2DFrameConverter();
-        this.imageBuffer = new OverwritingQueueFrameBuffer<>("", 3);
-//        this.imageBuffer = new OverwritingQueueBlockedFrameBuffer<>("", 3);
+        this.imageBuffer = new OverwritingQueueFrameBuffer<>("", 2);
         this.stat = stat;
     }
 
@@ -69,7 +66,6 @@ public class VideoRenderer<T> implements UIModule<T> {
     public void render() {
         if (!isRendering) {
             isRendering = true;
-            executor.execute(this::processFrame);
         }
 
         if (isOp.get()) {
@@ -78,20 +74,6 @@ public class VideoRenderer<T> implements UIModule<T> {
         renderVideoOutput();
     }
 
-    private void processFrame() {
-        while (isRendering) {
-            BufferElement<Frame> element = frameBuffer.get();
-            if (element != null) {
-                try {
-                    BufferedImage image = converter.getBufferedImage(element.getData());
-                    imageBuffer.put(new BufferElement<>(image));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        isRendering = false;
-    }
 
 
     private void renderVideoOutput() {
@@ -148,8 +130,19 @@ public class VideoRenderer<T> implements UIModule<T> {
         ImGui.end();
     }
 
+    @Nullable
     @Override
-    public T execute(T o) {
+    public Frame execute(Frame o) {
+            BufferElement<Frame> element = frameBuffer.get();
+            if (element != null) {
+//                try {
+                    BufferedImage image = converter.getBufferedImage(element.getData());
+                    imageBuffer.put(new BufferElement<>(image));
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
+            }
+//        isRendering = false;
         return null;
     }
 

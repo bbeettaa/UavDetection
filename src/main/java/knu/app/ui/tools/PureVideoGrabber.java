@@ -13,25 +13,28 @@ import org.bytedeco.javacv.Frame;
 import javax.swing.*;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
-public class PureVideoGrabber<T> implements UIModule<T> {
-    private final VideoSource  reader;
-    private final ExecutorService executor;
+public class PureVideoGrabber implements UIModule<Frame> {
+    private final VideoSource reader;
     private final Bufferable<Frame> frameBuffer;
     private String videoFilePath;
     private boolean isPlaying;
-    private ImBoolean isOp;
+    private final ImBoolean isOp;
 
-    private ImInt framerate = new ImInt(30);
-    private ImInt width = new ImInt(1920);
-    private ImInt height = new ImInt(1080);
+    private final ImInt framerate = new ImInt(30);
+    private final ImInt width = new ImInt(1920);
+    private final ImInt height = new ImInt(1080);
 
     private final StatisticDisplayUI stat;
 
-    public PureVideoGrabber(VideoSource  reader, Bufferable<Frame> frameBuffer, ExecutorService executor, StatisticDisplayUI stat) {
+    private final ReentrantLock lock = new ReentrantLock();
+    private final Condition pauseLock = lock.newCondition();
+
+    public PureVideoGrabber(VideoSource reader, Bufferable<Frame> frameBuffer,  StatisticDisplayUI stat) {
         this.reader = reader;
         this.frameBuffer = frameBuffer;
-        this.executor = executor;
         this.isOp = new ImBoolean(false);
         this.stat = stat;
     }
@@ -79,35 +82,35 @@ public class PureVideoGrabber<T> implements UIModule<T> {
         ImGui.end();
     }
 
-
     private void play() {
         if (videoFilePath == null) return;
-        if (!isPlaying) {
-            isPlaying = true;
-            executor.submit(this::grabFrames);
+        lock.lock();
+        try {
+            if (!isPlaying) {
+                isPlaying = true;
+                pauseLock.signalAll();
+            }
+        } finally {
+            lock.unlock();
         }
-    }
 
-    private void grabFrames() {
-        execute(null);
     }
 
     @Override
-    public T execute(T o) {
+    public Frame execute(Frame o) {
+        lock.lock();
         try {
-            while (isPlaying && !Thread.currentThread().isInterrupted()) {
-//                stat.measure();
-                Frame frame = reader.grab();
-                if (frame != null) {
-                    frameBuffer.put(new BufferElement<>(frame));
-                } else {
-                    stop();
-                }
+            while (!isPlaying) {
+                pauseLock.await();
             }
+            return reader.grab();
         } catch (Exception e) {
             e.printStackTrace();
             stop();
+        } finally {
+            lock.unlock();
         }
+
         return null;
     }
 
@@ -161,7 +164,6 @@ public class PureVideoGrabber<T> implements UIModule<T> {
         isPlaying = true;
         reader.resume();
     }
-
 
 
 }

@@ -30,7 +30,7 @@ public class OverwritingQueueBlockedFrameBuffer<T> implements Bufferable<T> {
                 queue.poll(); // overwrite oldest
             }
             queue.offer(element);
-            notEmpty.signal(); // notify a waiting getter
+            notEmpty.signalAll(); // notify a waiting getter
         } finally {
             lock.unlock();
         }

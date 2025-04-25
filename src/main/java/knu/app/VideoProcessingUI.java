@@ -47,13 +47,13 @@ public class VideoProcessingUI {
     public void initModules() {
         Bufferable<Frame> frameReaderBuffer = new OverwritingQueueBlockedFrameBuffer<>("frameReaderBuffer", 100);
         Bufferable<Frame> processingBuffer = new OverwritingQueueBlockedFrameBuffer<>("processingBuffer", 100);
-        Bufferable<Frame> frameWriterBuffer = new OverwritingQueueFrameBuffer<>("frameWriterBuffer", 100);
+        Bufferable<Frame> frameWriterBuffer = new OverwritingQueueBlockedFrameBuffer<>("frameWriterBuffer", 100);
 
         StatisticDisplayUI stat = new StatisticDisplayUI();
 
         VideoSource videoSource = new NativeFFmpegVideoSource();
-        PureVideoGrabber<Frame> videoGrabber = new PureVideoGrabber<>(videoSource, frameReaderBuffer, executor, stat);
-        VideoRenderer<Frame> videoRenderer = new VideoRenderer<>(frameWriterBuffer, executor, stat);
+        PureVideoGrabber videoGrabber = new PureVideoGrabber(videoSource, frameReaderBuffer, stat);
+        VideoRenderer videoRenderer = new VideoRenderer(frameWriterBuffer, stat);
 
 //        PlaybackControlVideoSource videoSource = new NativePlaybackFFmpegVideoSource();
 //        VideoGrabber<Frame> videoGrabber = new VideoGrabber<>(videoSource, frameReaderBuffer, executor);
@@ -63,7 +63,20 @@ public class VideoProcessingUI {
         UIModule<Frame> processingUi = new ProcessingUiModule(new KMeansPreprocessor(), executor, processingBuffer);
 
 
-
+        executor.submit(() -> {
+            Frame frame;
+            while (!Thread.interrupted()) {
+                frame = videoGrabber.execute(null);
+                if (frame != null) {
+                    frameReaderBuffer.put(new BufferElement<>(frame));
+                }
+            }
+        });
+        executor.submit(() -> {
+            while (!Thread.currentThread().isInterrupted()) {
+                videoRenderer.execute(null);
+            }
+        });
 
 
         executor.submit(() -> {
@@ -94,7 +107,6 @@ public class VideoProcessingUI {
                 }
             }
         });
-
 
 
         // Upper Menu
@@ -195,7 +207,7 @@ public class VideoProcessingUI {
     }
 
 
-    private void processing(){
+    private void processing() {
 //        try {
 //            BufferElement<Frame> o = frameReaderBuffer.get();
 //            if (o != null) {

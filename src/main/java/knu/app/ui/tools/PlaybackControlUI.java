@@ -10,12 +10,12 @@ import org.bytedeco.javacv.Frame;
 
 public class PlaybackControlUI implements UIModule<Void> {
     private VideoGrabber<?> videoGrabber;
-    private VideoRenderer<?> videoRenderer;
+    private VideoRenderer videoRenderer;
     private float[] playbackSpeed = new float[]{1.0f};
     private boolean isPlaying = true;
     private final ImBoolean isOp;
 
-    public PlaybackControlUI(VideoGrabber<Frame> grabber, VideoRenderer<?> renderer) {
+    public PlaybackControlUI(VideoGrabber<Frame> grabber, VideoRenderer renderer) {
         this.videoGrabber = grabber;
         this.videoRenderer = renderer;
 
