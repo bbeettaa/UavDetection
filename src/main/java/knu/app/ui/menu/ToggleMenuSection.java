@@ -1,7 +1,7 @@
 package knu.app.ui.menu;
 
 import imgui.ImGui;
-import knu.app.ui.tools.UIModule;
+import knu.app.ui.modules.UIModule;
 
 public class ToggleMenuSection implements MenuSection {
     private final UIModule<?> ui;

@@ -1,13 +1,13 @@
 package knu.app.ui.menu;
 
 import imgui.ImGui;
-import knu.app.ui.LocalizationManager;
-import knu.app.ui.tools.UIModule;
+import knu.app.bll.utils.LocalizationManager;
+import knu.app.ui.modules.UIModule;
 
 public class StatisticMenuSection implements MenuSection {
-    private final UIModule ui;
+    private final UIModule<Void> ui;
 
-    public StatisticMenuSection(UIModule ui) {
+    public StatisticMenuSection(UIModule<Void> ui) {
         this.ui = ui;
     }
 
@@ -18,7 +18,7 @@ public class StatisticMenuSection implements MenuSection {
 
     @Override
     public void render() {
-        if (ImGui.menuItem(LocalizationManager.tr("fps.show"), "", ui.isOpened())) {
+        if (ImGui.menuItem(LocalizationManager.tr("statistic.show"), "", ui.isOpened())) {
             ui.toggle();
         }
     }
