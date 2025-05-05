@@ -1,4 +1,4 @@
-package knu.app.TEST;
+package knu.app.SAMPLES;
 
 import knu.app.bll.processors.detection.DetectionResult;
 import knu.app.bll.processors.detection.ORBObjectDetector;
@@ -18,7 +18,7 @@ import java.util.List;
 import static org.bytedeco.opencv.global.opencv_imgcodecs.*;
 import static org.bytedeco.opencv.global.opencv_imgproc.*;
 
-public class ObjectDetectionTrackingDemo {
+public class ObjectDetectionTrackingSample {
 
     public static void main(String[] args) throws Exception {
         String videoPath = "input.mp4";

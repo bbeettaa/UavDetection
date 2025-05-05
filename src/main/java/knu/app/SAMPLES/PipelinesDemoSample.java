@@ -21,7 +21,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 
-public class PipelinesDemo {
+public class PipelinesDemoSample {
     public static void main(String[] args) {
         String inputFile = "input.mp4";
         opencv_core.setNumThreads(0);
