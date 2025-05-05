@@ -1,4 +1,4 @@
-package knu.app.ui.tools;
+package knu.app.ui.modules;
 
 public interface UIModule<T> {
     String getName();

@@ -1,26 +1,23 @@
-package knu.app.ui.tools;
+package knu.app.ui.modules;
 
 import imgui.ImGui;
 import imgui.ImVec2;
 import imgui.flag.ImGuiWindowFlags;
 import imgui.type.ImBoolean;
 import imgui.type.ImFloat;
-import knu.app.utils.textures.CpuImageTexture;
-import knu.app.utils.textures.FastOpenGLTexture;
-import knu.app.utils.textures.UiTexturable;
-import knu.app.buffers.BufferElement;
-import knu.app.buffers.Bufferable;
-import knu.app.buffers.OverwritingQueueFrameBuffer;
-import knu.app.ui.LocalizationManager;
+import knu.app.bll.utils.textures.FastOpenGLTexture;
+import knu.app.bll.utils.textures.UiTexturable;
+import knu.app.bll.buffers.BufferElement;
+import knu.app.bll.buffers.Bufferable;
+import knu.app.bll.buffers.OverwritingQueueFrameBuffer;
+import knu.app.bll.utils.LocalizationManager;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.Java2DFrameConverter;
 
 import javax.annotation.Nullable;
 import java.awt.image.BufferedImage;
-import java.util.concurrent.ExecutorService;
 
 public class VideoRenderer implements UIModule<Frame> {
-    private final Bufferable<Frame> frameBuffer;
     private final UiTexturable texture;
     private final Java2DFrameConverter converter;
 
@@ -33,8 +30,6 @@ public class VideoRenderer implements UIModule<Frame> {
     private final Bufferable<BufferedImage> imageBuffer;
     private volatile boolean isRendering = false;
 
-    private final StatisticDisplayUI stat;
-
 
     private static final int VIDEO_WINDOW_FLAGS =
             ImGuiWindowFlags.NoDecoration |
@@ -42,9 +37,15 @@ public class VideoRenderer implements UIModule<Frame> {
                     ImGuiWindowFlags.NoScrollbar |
                     ImGuiWindowFlags.NoScrollWithMouse |
                     ImGuiWindowFlags.NoBringToFrontOnFocus;
+//private static final int VIDEO_WINDOW_FLAGS =
+//        ImGuiWindowFlags.NoDecoration |
+//                ImGuiWindowFlags.NoScrollbar |
+//                ImGuiWindowFlags.NoScrollWithMouse ;
 
-    public VideoRenderer(Bufferable<Frame> frameBuffer,  StatisticDisplayUI stat) {
-        this.frameBuffer = frameBuffer;
+public static String VIDEORENDERE_ID = LocalizationManager.tr("output.video.name");
+public static String VEDIO_OUTPUT_ID = "Video Output";
+
+    public VideoRenderer( ) {
         this.isOp = new ImBoolean(false);
         this.keepAspectRatio = new ImBoolean(true);
         this.keepCentered = new ImBoolean(true);
@@ -53,13 +54,12 @@ public class VideoRenderer implements UIModule<Frame> {
 //        this.texture = new CpuImageTexture();
         this.texture = new FastOpenGLTexture();
         this.converter = new Java2DFrameConverter();
-        this.imageBuffer = new OverwritingQueueFrameBuffer<>("", 2);
-        this.stat = stat;
+        this.imageBuffer = new OverwritingQueueFrameBuffer<>( 2);
     }
 
     @Override
     public String getName() {
-        return LocalizationManager.tr("output.video.name");
+        return VIDEORENDERE_ID;
     }
 
     @Override
@@ -75,14 +75,16 @@ public class VideoRenderer implements UIModule<Frame> {
     }
 
 
-
     private void renderVideoOutput() {
-        ImGui.setNextWindowPos(0, 18);
-        ImVec2 viewportSize = ImGui.getMainViewport().getSize();
-        ImGui.setNextWindowSize(viewportSize.x, viewportSize.y - 18);
+//        ImGui.setNextWindowPos(0, 18);
+//        ImVec2 viewportSize = ImGui.getMainViewport().getSize();
+//        ImGui.setNextWindowSize(viewportSize.x, viewportSize.y - 18);
 
-        // Safe begin/end block
-        if (ImGui.begin("Video Output", VIDEO_WINDOW_FLAGS)) {
+//        var cl = new ImGuiWindowClass();
+//        cl.setDockNodeFlagsOverrideSet(ImGuiDockNodeFlags.NoTabBar);
+//        ImGui.setNextWindowClass(cl);
+
+        if (ImGui.begin(VEDIO_OUTPUT_ID, VIDEO_WINDOW_FLAGS)) {
             try {
                 BufferElement<BufferedImage> element = imageBuffer.get();
 
@@ -133,16 +135,8 @@ public class VideoRenderer implements UIModule<Frame> {
     @Nullable
     @Override
     public Frame execute(Frame o) {
-            BufferElement<Frame> element = frameBuffer.get();
-            if (element != null) {
-//                try {
-                    BufferedImage image = converter.getBufferedImage(element.getData());
-                    imageBuffer.put(new BufferElement<>(image));
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                }
-            }
-//        isRendering = false;
+        BufferedImage image = converter.getBufferedImage(o);
+        imageBuffer.put(new BufferElement<>(image));
         return null;
     }
 
@@ -160,23 +154,6 @@ public class VideoRenderer implements UIModule<Frame> {
     public boolean isOpened() {
         return isOp.get();
     }
-
-    public void resume() {
-//        isPlaying = true;
-//        reader.resume();
-    }
-    public void pause() {
-
-    }
-
-    public void stop() {
-
-    }
-
-    public void setPlaybackSpeed(float speed){
-
-    }
-
 
 
 
