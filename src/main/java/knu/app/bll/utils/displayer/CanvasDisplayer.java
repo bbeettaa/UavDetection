@@ -1,4 +1,4 @@
-package knu.app.utils.displayer;
+package knu.app.bll.utils.displayer;
 
 import org.bytedeco.javacv.*;
 import org.bytedeco.javacv.Frame;

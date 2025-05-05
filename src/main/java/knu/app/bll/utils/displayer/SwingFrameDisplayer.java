@@ -1,4 +1,4 @@
-package knu.app.utils.displayer;
+package knu.app.bll.utils.displayer;
 
 import org.bytedeco.javacv.Frame;
 
@@ -9,9 +9,9 @@ import javax.swing.*;
 import java.awt.image.BufferedImage;
 
 public class SwingFrameDisplayer implements FrameDisplayer {
-    private JFrame frame;
-    private JLabel label;
-    private ImageIcon imageIcon;
+    private final JFrame frame;
+    private final JLabel label;
+    private final Java2DFrameConverter converterImg = new Java2DFrameConverter();
 
     public SwingFrameDisplayer() {
         frame = new JFrame("Frame Display");
@@ -36,18 +36,13 @@ public class SwingFrameDisplayer implements FrameDisplayer {
     }
 
     private void showImage(BufferedImage bufferedImage) {
-        imageIcon = new ImageIcon(bufferedImage);
+        ImageIcon imageIcon = new ImageIcon(bufferedImage);
         label.setIcon(imageIcon);
         label.repaint();
     }
 
-    Java2DFrameConverter converterImg = new Java2DFrameConverter();
-    OpenCVFrameConverter.ToMat converter = new OpenCVFrameConverter.ToMat();
-
-
     private BufferedImage frameToBufferedImage(Frame frame) {
-        BufferedImage bufferedImage = converterImg.convert(frame);
-        return bufferedImage;
+        return converterImg.convert(frame);
     }
 
     @Override
