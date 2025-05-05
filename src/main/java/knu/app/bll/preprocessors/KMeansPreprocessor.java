@@ -23,10 +23,6 @@ public class KMeansPreprocessor implements FramePreprocessor {
         this.k = k;
     }
 
-    public KMeansPreprocessor() {
-        this.k = 3;
-    }
-
     @Override
     public Mat process(Mat input) {
         input.reshape(1, input.rows() * input.cols()).convertTo(samples32f, CV_32F);

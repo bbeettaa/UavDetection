@@ -8,9 +8,8 @@ import java.awt.*;
 
 public class CanvasDisplayer implements FrameDisplayer {
     private final CanvasFrame canvas;
-    private final OpenCVFrameConverter.ToMat converter = new OpenCVFrameConverter.ToMat();
 
-    public CanvasDisplayer(String title, double gamma) {
+    public CanvasDisplayer(String title ) {
         this.canvas = new CanvasFrame(title, CanvasFrame.getDefaultGamma() );
         canvas.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
     }
@@ -20,22 +19,5 @@ public class CanvasDisplayer implements FrameDisplayer {
         canvas.showImage(frame);
     }
 
-    @Override
-    public void show(Image image) {
-        canvas.showImage(image);
-    }
-
-    @Override
-    public void close() {
-        canvas.dispose();
-    }
-
-    public Frame convert(Mat mat) {
-        return converter.convert(mat);
-    }
-
-    public org.bytedeco.opencv.opencv_core.Mat convert(Frame frame) {
-        return converter.convert(frame);
-    }
 }
 

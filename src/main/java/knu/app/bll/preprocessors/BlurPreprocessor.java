@@ -18,9 +18,7 @@ public class BlurPreprocessor implements FramePreprocessor {
     }
 
     public BlurPreprocessor() {
-        this.blurred = new Mat();
-        this.d = 1;
-        this.kernel = 5;
+        this(1);
     }
 
     @Override
