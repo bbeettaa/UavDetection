@@ -3,7 +3,7 @@ package knu.app.ui;
 import imgui.ImGui;
 import knu.app.ui.menu.MainMenuSection;
 import knu.app.ui.menu.MenuSection;
-import knu.app.ui.tools.UIModule;
+import knu.app.ui.modules.UIModule;
 
 public class MainMenuUI implements UIModule<Void> {
     private final MainMenuSection[] mainSections;
@@ -41,8 +41,8 @@ public class MainMenuUI implements UIModule<Void> {
     public void render() {
         if (ImGui.beginMainMenuBar()) {
             for (MainMenuSection s : mainSections) {
-                if (ImGui.beginMenu(s.getSectionName())) {
-                    for (MenuSection section : s.getSections()) {
+                if (ImGui.beginMenu(s.sectionName())) {
+                    for (MenuSection section : s.sections()) {
                         section.render();
                     }
                     ImGui.endMenu();
