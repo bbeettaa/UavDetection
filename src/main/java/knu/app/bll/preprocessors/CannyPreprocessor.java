@@ -1,4 +1,4 @@
-package knu.app.preprocessors;
+package knu.app.bll.preprocessors;
 
 
 import org.bytedeco.opencv.opencv_core.Mat;
@@ -7,8 +7,8 @@ import static org.bytedeco.opencv.global.opencv_imgproc.*;
 
 
 public class CannyPreprocessor implements FramePreprocessor {
-    private Mat edges;
-    private Mat result;
+    private final Mat edges;
+    private final Mat result;
     private int v;
     private int v1;
 

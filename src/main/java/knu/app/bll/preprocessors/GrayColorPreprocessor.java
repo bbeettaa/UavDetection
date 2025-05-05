@@ -1,12 +1,12 @@
-package knu.app.preprocessors;
+package knu.app.bll.preprocessors;
 
 import org.bytedeco.opencv.opencv_core.Mat;
 
 import static org.bytedeco.opencv.global.opencv_imgproc.*;
 
 public class GrayColorPreprocessor implements FramePreprocessor {
-    Mat gray;
-    Mat result;
+    final Mat gray;
+    final Mat result;
     public GrayColorPreprocessor() {
         this.gray = new Mat();
         this.result = new Mat();

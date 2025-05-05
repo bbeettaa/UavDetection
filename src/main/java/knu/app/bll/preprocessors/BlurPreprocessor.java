@@ -1,4 +1,4 @@
-package knu.app.preprocessors;
+package knu.app.bll.preprocessors;
 
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Size;
@@ -7,7 +7,7 @@ import static org.bytedeco.opencv.global.opencv_imgproc.*;
 
 public class BlurPreprocessor implements FramePreprocessor {
 
-    private Mat blurred;
+    private final Mat blurred;
     private double d;
     private int kernel;
 
