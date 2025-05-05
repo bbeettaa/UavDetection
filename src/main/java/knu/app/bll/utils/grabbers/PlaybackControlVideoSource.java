@@ -7,7 +7,7 @@ import java.io.IOException;
 public interface PlaybackControlVideoSource {
     void play();
 
-    void pause() throws IOException;
+    void pause();
 
     void stop() throws IOException;
 

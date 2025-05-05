@@ -14,18 +14,16 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class PureVideoGrabber implements UIModule<Frame> {
-    //    private final VideoSource reader;
     private final PlaybackControlVideoSource reader;
     private String videoFilePath;
     private boolean isPlaying;
     private final ImBoolean isOp;
 
     private final ImInt framerate = new ImInt(30);
-    private final ImFloat speed = new ImFloat(1);
     private final ImInt width = new ImInt(1920);
     private final ImInt height = new ImInt(1080);
 
-    public static String GRABBER_ID = "Video Grabber Controls";
+    public static final String GRABBER_ID = "Video Grabber Controls";
 
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition pauseLock = lock.newCondition();
@@ -52,8 +50,6 @@ public class PureVideoGrabber implements UIModule<Frame> {
             if (result == JFileChooser.APPROVE_OPTION) {
                 videoFilePath = fileChooser.getSelectedFile().getAbsolutePath();
                 loadVideoFile();
-//                play();
-//                pause();
             }
         }
         // 2. Video Information
@@ -181,12 +177,4 @@ public class PureVideoGrabber implements UIModule<Frame> {
         }
     }
 
-    public void resume() {
-        isPlaying = true;
-        reader.resume();
-    }
-
-    public boolean isPlaying() {
-        return isPlaying;
-    }
 }

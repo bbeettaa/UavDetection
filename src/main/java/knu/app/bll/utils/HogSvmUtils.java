@@ -1,6 +1,5 @@
 package knu.app.bll.utils;
 
-import knu.app.bll.utils.grabbers.PlaybackFFmpegRawVideoSource;
 import org.bytedeco.javacpp.FloatPointer;
 import org.bytedeco.javacpp.indexer.DoubleIndexer;
 import org.bytedeco.javacpp.indexer.FloatIndexer;
@@ -146,8 +145,6 @@ public class HogSvmUtils {
                 for (int x = 0; x <= img.cols() - WIN_SIZE.width(); x += negativePatchesStep) {
                     roi = new Rect(x, y, WIN_SIZE.width(), WIN_SIZE.height());
                     patch = new Mat(img, roi);
-//                    imshow("patch", patch);
-//                    waitKey(0);
                     patches.add(preprocessImage(patch));
                     patch.release();
                 }

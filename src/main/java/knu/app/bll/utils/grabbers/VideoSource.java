@@ -12,7 +12,7 @@ public interface VideoSource {
 
     void start();
 
-    void pause() throws IOException;
+    void pause();
 
     void resume();
 

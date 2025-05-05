@@ -37,13 +37,9 @@ public class VideoRenderer implements UIModule<Frame> {
                     ImGuiWindowFlags.NoScrollbar |
                     ImGuiWindowFlags.NoScrollWithMouse |
                     ImGuiWindowFlags.NoBringToFrontOnFocus;
-//private static final int VIDEO_WINDOW_FLAGS =
-//        ImGuiWindowFlags.NoDecoration |
-//                ImGuiWindowFlags.NoScrollbar |
-//                ImGuiWindowFlags.NoScrollWithMouse ;
 
-public static String VIDEORENDERE_ID = LocalizationManager.tr("output.video.name");
-public static String VEDIO_OUTPUT_ID = "Video Output";
+    public static final String VIDEORENDERE_ID = LocalizationManager.tr("output.video.name");
+public static final String VEDIO_OUTPUT_ID = "Video Output";
 
     public VideoRenderer( ) {
         this.isOp = new ImBoolean(false);
@@ -76,13 +72,6 @@ public static String VEDIO_OUTPUT_ID = "Video Output";
 
 
     private void renderVideoOutput() {
-//        ImGui.setNextWindowPos(0, 18);
-//        ImVec2 viewportSize = ImGui.getMainViewport().getSize();
-//        ImGui.setNextWindowSize(viewportSize.x, viewportSize.y - 18);
-
-//        var cl = new ImGuiWindowClass();
-//        cl.setDockNodeFlagsOverrideSet(ImGuiDockNodeFlags.NoTabBar);
-//        ImGui.setNextWindowClass(cl);
 
         if (ImGui.begin(VEDIO_OUTPUT_ID, VIDEO_WINDOW_FLAGS)) {
             try {

@@ -35,10 +35,6 @@ public abstract class RendererUI {
         this.scalar = renderer.getScalar();
     }
 
-    public String getName(){
-        return name;
-    }
-
     public void renderSettings(String id) {
         ImGui.sliderInt(LocalizationManager.tr("processor.draw.thickness") + "##" + id, thickness.getData(), -1, 32);
         ImGui.sliderInt(LocalizationManager.tr("processor.draw.linetype") + "##" + id, lineType.getData(), -1, 32);

@@ -174,7 +174,4 @@ public class CSRTTracker implements ObjectTracker {
         return new Rect(x, y, width, height);
     }
 
-    public boolean isInitialized() {
-        return isInitialized;
-    }
 }

@@ -6,6 +6,4 @@ public interface UiTexturable {
     void upload(BufferedImage image);
 
     void renderImGui(float width, float height);
-
-    void dispose();
 }

@@ -4,8 +4,6 @@ import imgui.*;
 import imgui.flag.*;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
-import imgui.type.ImBoolean;
-import imgui.type.ImInt;
 import knu.app.bll.buffers.BufferElement;
 import knu.app.bll.buffers.Bufferable;
 import knu.app.bll.buffers.OverwritingQueueBlockedFrameBuffer;
@@ -155,7 +153,7 @@ public class VideoProcessingUI {
         });
     }
 
-    public void run() throws IOException {
+    public void run() {
         initGLFW();
         initImGui();
         renderLoop();

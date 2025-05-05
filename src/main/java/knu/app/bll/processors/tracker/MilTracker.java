@@ -11,19 +11,16 @@ import static org.bytedeco.opencv.global.opencv_core.CV_8U;
 
 public class MilTracker implements ObjectTracker {
     private final Tracker tracker;
-    private boolean isInitialized = false;
     private Rect lastTrackedRect;
     private int failedFramesCount = 0;
     private int successfulFramesCount = 0;
 
-    // Конфигурация
     private static final int MAX_FAILED_FRAMES = 15;
     private static final int MIN_SUCCESS_FRAMES = 5;
     private static final int MIN_ROI_SIZE = 20;
-    private static final double EDGE_THRESHOLD = 0.1; // 10% от размера кадра
+    private static final double EDGE_THRESHOLD = 0.1;
     private static final double SIZE_CHANGE_THRESHOLD = 0.3;
 
-    // Состояние
     private enum TrackerState {
         INITIALIZING,
         TRACKING,
@@ -40,13 +37,11 @@ public class MilTracker implements ObjectTracker {
     public synchronized List<Point2f> track(Mat frame, List<Point2f> roiPoints) {
         LinkedList<Point2f> resultPoints = new LinkedList<>();
 
-        // Проверка кадра
         if (invalidFrame(frame)) {
             handleInvalidFrame();
             return resultPoints;
         }
 
-        // Обработка состояний
         switch (state) {
             case INITIALIZING:
                 if (!roiPoints.isEmpty()) {
@@ -84,7 +79,6 @@ public class MilTracker implements ObjectTracker {
                 return points;
             }
 
-            // Проверка на выход за границы
             if (isNearEdge(trackedRect, frame)) {
                 state = TrackerState.EDGE_OCCLUSION;
                 System.out.println("Object near edge, entering EDGE_OCCLUSION state");
@@ -92,7 +86,6 @@ public class MilTracker implements ObjectTracker {
                 return points;
             }
 
-            // Проверка резкого изменения размера
             if (lastTrackedRect != null &&
                     sizeChangeTooLarge(trackedRect, lastTrackedRect)) {
                 handleTrackingFailure();
@@ -123,14 +116,12 @@ public class MilTracker implements ObjectTracker {
                 return points;
             }
 
-            // Если объект вернулся в кадр
             if (!isNearEdge(trackedRect, frame)) {
                 state = TrackerState.TRACKING;
                 System.out.println("Object returned from edge occlusion");
                 handleTrackingSuccess(trackedRect);
                 points.add(calculateCenter(trackedRect));
             } else {
-                // Продолжаем трекинг у края
                 points.add(calculateCenter(trackedRect));
             }
 
@@ -177,7 +168,6 @@ public class MilTracker implements ObjectTracker {
             successfulFramesCount = 0;
             failedFramesCount = 0;
             state = TrackerState.TRACKING;
-            isInitialized = true;
             System.out.println("Tracker initialized with ROI: " + roi);
         } catch (Exception e) {
             System.err.println("Initialization failed: " + e.getMessage());
@@ -206,7 +196,6 @@ public class MilTracker implements ObjectTracker {
 
         if (failedFramesCount >= MAX_FAILED_FRAMES) {
             state = TrackerState.LOST;
-            isInitialized = false;
             System.out.println("Tracker switched to LOST state");
         }
     }
@@ -215,7 +204,6 @@ public class MilTracker implements ObjectTracker {
         failedFramesCount++;
         if (failedFramesCount >= MAX_FAILED_FRAMES) {
             state = TrackerState.LOST;
-            isInitialized = false;
         }
     }
 
@@ -224,7 +212,6 @@ public class MilTracker implements ObjectTracker {
         failedFramesCount++;
         if (failedFramesCount >= MAX_FAILED_FRAMES) {
             state = TrackerState.LOST;
-            isInitialized = false;
         }
     }
 
@@ -266,15 +253,5 @@ public class MilTracker implements ObjectTracker {
                 (int) (maxX - minX), (int) (maxY - minY));
     }
 
-    public boolean isInitialized() {
-        return isInitialized;
-    }
 
-    public boolean isTracking() {
-        return state == TrackerState.TRACKING;
-    }
-
-    public boolean isLost() {
-        return state == TrackerState.LOST;
-    }
 }

@@ -25,7 +25,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class ProcessingModule implements UIModule<Mat> {
-    private final OpenCVFrameConverter.ToMat converter = new OpenCVFrameConverter.ToMat();
     private final ImBoolean isOp = new ImBoolean(true);
 
     private final ImBoolean useDetectors = new ImBoolean(false);
@@ -53,7 +52,7 @@ public class ProcessingModule implements UIModule<Mat> {
         init(templateImg);
     }
 
-    public static String PROCESSOR_ID = LocalizationManager.tr("menu.processor.name");
+    public static final String PROCESSOR_ID = LocalizationManager.tr("menu.processor.name");
 
     public void init(Mat templateImg) {
         String file = "src/main/resources/HOGDescriptorEsp1";

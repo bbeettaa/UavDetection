@@ -29,11 +29,6 @@ public class SwingFrameDisplayer implements FrameDisplayer {
         showImage(bufferedImage);
     }
 
-    @Override
-    public void show(Image image) {
-        BufferedImage bufferedImage = (BufferedImage) image;
-        showImage(bufferedImage);
-    }
 
     private void showImage(BufferedImage bufferedImage) {
         ImageIcon imageIcon = new ImageIcon(bufferedImage);
@@ -45,8 +40,4 @@ public class SwingFrameDisplayer implements FrameDisplayer {
         return converterImg.convert(frame);
     }
 
-    @Override
-    public void close() {
-        frame.dispose();
-    }
 }

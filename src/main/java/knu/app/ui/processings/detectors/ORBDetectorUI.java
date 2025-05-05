@@ -11,15 +11,15 @@ import org.bytedeco.opencv.opencv_core.Mat;
 public class ORBDetectorUI implements DetectorUI {
     private final ORBObjectDetector detector;
 
-    ImInt nfeatures = new ImInt(500);
-    ImFloat scaleFactor = new ImFloat(1.2f);
-    ImInt nlevels = new ImInt(8);
-    ImInt edgeThreshold = new ImInt(31);
-    ImInt firstlevel = new ImInt(0);
-    ImInt wtak = new ImInt(2);
-    ImInt scoreType = new ImInt(0);
-    ImInt patchcSize = new ImInt(31);
-    ImInt fastThreshold = new ImInt(20);
+    final ImInt nfeatures = new ImInt(500);
+    final ImFloat scaleFactor = new ImFloat(1.2f);
+    final ImInt nlevels = new ImInt(8);
+    final ImInt edgeThreshold = new ImInt(31);
+    final ImInt firstlevel = new ImInt(0);
+    final ImInt wtak = new ImInt(2);
+    final ImInt scoreType = new ImInt(0);
+    final ImInt patchcSize = new ImInt(31);
+    final ImInt fastThreshold = new ImInt(20);
 
 
     public ORBDetectorUI(ORBObjectDetector detector) {

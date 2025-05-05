@@ -198,39 +198,6 @@ public class PlaybackFFmpegRawVideoSource implements PlaybackControlVideoSource,
         return line.split("=")[1];
     }
 
-//    public static List<Long> extractFrameTimestamps(String inputFile) throws IOException, InterruptedException {
-//        List<String> cmd = new ArrayList<>();
-//        cmd.add("ffmpeg");
-//        cmd.add("-v"); cmd.add("error");               // показывать только ошибки и showinfo
-//        cmd.add("-i"); cmd.add(inputFile);             // входной файл
-//        cmd.add("-vf"); cmd.add("showinfo");           // фильтр для вывода pts_time
-//        cmd.add("-f"); cmd.add("null");                // не выводить кадры
-//        cmd.add("-");
-//
-//        ProcessBuilder pb = new ProcessBuilder(cmd);
-//        // stderr будет содержать строки showinfo
-//        Process process = pb.start();
-//
-//        List<Long> timestampsMs = new ArrayList<>();
-//        try (BufferedReader reader = new BufferedReader(
-//                new InputStreamReader(process.getErrorStream()))) {
-//            String line;
-//            while ((line = reader.readLine()) != null) {
-//                Matcher m = PTS_PATTERN.matcher(line);
-//                if (m.find()) {
-//                    double ptsSec = Double.parseDouble(m.group(1));
-//                    timestampsMs.add((long)(ptsSec * 1000)); // в миллисекундах
-//                }
-//            }
-//        }
-//
-//        int exitCode = process.waitFor();
-//        if (exitCode != 0) {
-//            throw new IOException("ffmpeg exited with code " + exitCode);
-//        }
-//        return timestampsMs;
-//    }
-
     @Override
     public void play() {
         if (!isRunning.get()) {
@@ -241,7 +208,7 @@ public class PlaybackFFmpegRawVideoSource implements PlaybackControlVideoSource,
     }
 
     @Override
-    public void pause() throws IOException {
+    public void pause() {
         if (!isRunning.get() || isPaused.get()) return;
         synchronized (pauseLock) {
             isPaused.set(true);

@@ -20,21 +20,19 @@ import static org.bytedeco.opencv.global.opencv_imgproc.cvtColor;
 
 public class HogSvmDetector implements ObjectDetector {
     private final HOGDescriptor hog;
-    private final double hitThreshold = 1.0;
-    private final double scale = 1.02;
-//    private final double scale = 1.015;
-    private final double finalThreshold = 0.0;
+    private  double hitThreshold = 1.0;
+    private  double scale = 1.02;
+    private  double finalThreshold = 0.0;
 
-    private final int WIN_STRINDE_L = 16;
-    private final Size winStride = new Size(WIN_STRINDE_L, WIN_STRINDE_L);
+    private  Size winStride = new Size(16, 16);
 
-    private Size padding = new Size(0, 0);
-    private boolean useMeanShiftGrouping = false;
+    private  Size padding = new Size(0, 0);
+    private  boolean useMeanShiftGrouping = false;
 
-    private final double weightThreshold = 0.00;
+    private  double weightThreshold = 0.00;
 
-    private float scoreThreshold = 1.0f;
-    private float nmsThreshold = 0.4f;
+    private  float scoreThreshold = 1.0f;
+    private  float nmsThreshold = 0.4f;
 
     public HogSvmDetector(HOGDescriptor hog) {
         this.hog = hog;
@@ -68,19 +66,89 @@ public class HogSvmDetector implements ObjectDetector {
             }
         }
 
-//        indices.close();
-//        boxes.close();
-//        weightPointer.close();
-//        detections.close();
-//        weights.close();
+        indices.close();
+        boxes.close();
+        weightPointer.close();
+        detections.close();
+        weights.close();
 
-//        gray.release();
+        gray.release();
         return new DetectionResult(filtered, scores);
     }
 
-    public void release() {
-        hog.close();
+    public HOGDescriptor getHog() {
+        return hog;
     }
 
+    public double getHitThreshold() {
+        return hitThreshold;
+    }
 
+    public void setHitThreshold(double hitThreshold) {
+        this.hitThreshold = hitThreshold;
+    }
+
+    public double getScale() {
+        return scale;
+    }
+
+    public void setScale(double scale) {
+        this.scale = scale;
+    }
+
+    public double getFinalThreshold() {
+        return finalThreshold;
+    }
+
+    public void setFinalThreshold(double finalThreshold) {
+        this.finalThreshold = finalThreshold;
+    }
+
+    public Size getWinStride() {
+        return winStride;
+    }
+
+    public void setWinStride(int winStride) {
+        this.winStride = new Size(winStride, winStride);
+    }
+
+    public Size getPadding() {
+        return padding;
+    }
+
+    public void setPadding(int padding) {
+        this.padding = new Size(padding, padding);
+    }
+
+    public boolean isUseMeanShiftGrouping() {
+        return useMeanShiftGrouping;
+    }
+
+    public void setUseMeanShiftGrouping(boolean useMeanShiftGrouping) {
+        this.useMeanShiftGrouping = useMeanShiftGrouping;
+    }
+
+    public double getWeightThreshold() {
+        return weightThreshold;
+    }
+
+    public void setWeightThreshold(double weightThreshold) {
+        this.weightThreshold = weightThreshold;
+    }
+
+    public float getScoreThreshold() {
+        return scoreThreshold;
+    }
+
+    public void setScoreThreshold(float scoreThreshold) {
+        this.scoreThreshold = scoreThreshold;
+    }
+
+    public float getNmsThreshold() {
+        return nmsThreshold;
+    }
+
+    public void setNmsThreshold(float nmsThreshold) {
+        this.nmsThreshold = nmsThreshold;
+    }
 }

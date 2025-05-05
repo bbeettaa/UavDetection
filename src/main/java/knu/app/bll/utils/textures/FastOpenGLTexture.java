@@ -34,14 +34,12 @@ public class FastOpenGLTexture implements UiTexturable {
                 textureId = GL11.glGenTextures();
                 GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId);
 
-                // Для grayscale изображений
                 if (image.getType() == BufferedImage.TYPE_BYTE_GRAY) {
                     GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 1);
                     GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RED,
                             width, height, 0,
                             GL11.GL_RED, GL11.GL_UNSIGNED_BYTE, buffer);
                 }
-                // Для цветных изображений
                 else {
                     int format = (image.getType() == BufferedImage.TYPE_3BYTE_BGR)
                             ? GL12.GL_BGR
@@ -66,14 +64,12 @@ public class FastOpenGLTexture implements UiTexturable {
         synchronized (lock) {
             if (textureId == -1) return;
 
-            // Проверка на валидность текстуры
             if (!GL11.glIsTexture(textureId)) {
                 System.err.println("Attempt to render invalid texture");
                 textureId = -1;
                 return;
             }
 
-            // Рендеринг с сохранением пропорций
             float aspectRatio = (float)this.width / this.height;
             float displayHeight = width / aspectRatio;
 
@@ -83,7 +79,6 @@ public class FastOpenGLTexture implements UiTexturable {
 
 
 
-    @Override
     public void dispose() {
         synchronized (lock) {
             if (textureId != -1 && GL11.glIsTexture(textureId)) {
@@ -95,9 +90,6 @@ public class FastOpenGLTexture implements UiTexturable {
         }
     }
 
-    public int getTextureId() { return textureId; }
-    public int getWidth() { return width; }
-    public int getHeight() { return height; }
 }
 
 

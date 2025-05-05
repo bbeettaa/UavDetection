@@ -10,7 +10,6 @@ import org.bytedeco.opencv.opencv_core.Mat;
 
 public class HogDetectorUI implements DetectorUI {
     private final ObjectDetector hog;
-    private final ImFloat threshold = new ImFloat(0.5f);
 
     public HogDetectorUI(HogSvmDetector hog) {
         this.hog = hog;
@@ -23,7 +22,6 @@ public class HogDetectorUI implements DetectorUI {
 
     @Override
     public void renderSettings() {
-
     }
 
     @Override

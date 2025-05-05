@@ -63,12 +63,6 @@ public class ROIRenderer implements DetectionRenderer {
             }
         }
 
-//        if (rects.isEmpty()) return;
-//
-//        for (Rect r : rects) {
-//            putText(frame, text, textOrg, FONT_HERSHEY_SIMPLEX, 0.5, color, thick, lineType, false);
-//            rectangle(frame, r, color, thick, type, 0);
-//        }
     }
 
     public void setScalar(Scalar scalar) {

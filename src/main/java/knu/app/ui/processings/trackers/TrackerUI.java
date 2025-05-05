@@ -4,7 +4,6 @@ package knu.app.ui.processings.trackers;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Point2f;
 
-import java.util.LinkedList;
 import java.util.List;
 
 public interface TrackerUI {
