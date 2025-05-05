@@ -1,4 +1,4 @@
-package knu.app.buffers;
+package knu.app.bll.buffers;
 
 public interface Bufferable<T> {
     void put(BufferElement<T> element);

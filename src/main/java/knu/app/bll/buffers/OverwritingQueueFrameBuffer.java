@@ -1,32 +1,26 @@
-package knu.app.buffers;
+package knu.app.bll.buffers;
 
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
 
 
 public class OverwritingQueueFrameBuffer<T> implements Bufferable<T> {
     private final int capacity;
     private final Queue<BufferElement<T>> queue;
-    private final String name;
 
 
-    public OverwritingQueueFrameBuffer(String name, int capacity) {
+    public OverwritingQueueFrameBuffer(int capacity) {
         if (capacity <= 0) {
             throw new IllegalArgumentException("Buffer capacity must be > 0");
         }
         this.capacity = capacity;
-        this.name = name;
         this.queue = new LinkedList<>();
     }
 
-
     public BufferElement<T> get() {
-        return queue.isEmpty() ? null : queue.poll(); // Неблокирующее получение
+        return queue.isEmpty() ? null : queue.poll();
 
     }
-
 
     @Override
     public void put(BufferElement<T> element) {
@@ -35,7 +29,6 @@ public class OverwritingQueueFrameBuffer<T> implements Bufferable<T> {
         }
         queue.offer(element);
     }
-
 
     @Override
     public boolean isEmpty() {

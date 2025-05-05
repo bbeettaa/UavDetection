@@ -1,4 +1,4 @@
-package knu.app.buffers;
+package knu.app.bll.buffers;
 
 import java.util.concurrent.locks.ReentrantLock;
 

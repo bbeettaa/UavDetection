@@ -1,4 +1,4 @@
-package knu.app.buffers;
+package knu.app.bll.buffers;
 
 public class BufferElement<T> {
     private final T data;
