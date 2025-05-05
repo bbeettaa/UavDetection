@@ -1,4 +1,4 @@
-package knu.app.SAMPLES;
+package knu.app.samples;
 
 import knu.app.bll.processors.detection.DetectionResult;
 import knu.app.bll.processors.detection.HogSvmDetector;
@@ -13,16 +13,12 @@ import static org.bytedeco.opencv.global.opencv_highgui.imshow;
 import static org.bytedeco.opencv.global.opencv_highgui.waitKey;
 import static org.bytedeco.opencv.global.opencv_imgcodecs.imread;
 
-public class HogSvmSample {
+public class HogSvmTrainerSample {
 
     public static void main(String[] args) {
-        HOGDescriptor hog;
-//        boolean isModelTrained = true;
-        boolean isModelTrained = false;
-
         cvSetNumThreads(Runtime.getRuntime().availableProcessors());
-        String POSITIVE_PATH = "/mnt/lindisk/datasets/drone.vis/hogSamples/";
-        String NEGATIVE_PATH = "/mnt/lindisk/datasets/drone.vis/hogSamples/negative/";
+        String positivePath = "/mnt/lindisk/datasets/drone.vis/hogSamples/";
+        String negativePath = "/mnt/lindisk/datasets/drone.vis/hogSamples/negative/";
         String[] testPath = {
                 "/mnt/lindisk/datasets/drone.vis/hogSamples/samples/DRONE_006041.png",
                 "/mnt/lindisk/datasets/drone.vis/hogSamples/samples/DRONE_008021.png",
@@ -33,28 +29,35 @@ public class HogSvmSample {
                 "/mnt/lindisk/datasets/drone.vis/hogSamples/negative/HELICOPTER_004485.png",
                 "/mnt/lindisk/datasets/drone.vis/hogSamples/negative/0000352_02353_d_0000551.jpg",
         };
+        String modelFile = "src/main/resources/HOGDescriptorEsp1";
 
-        String file = "src/main/resources/HOGDescriptorEsp1";
-        if (isModelTrained) {
-            HogSvmUtils trainer = new HogSvmUtils();
-            hog = trainer.loadDescriptorFromFile(file);
-        } else {
-            HogSvmUtils trainer = new HogSvmUtils();
-            trainer.train(POSITIVE_PATH, NEGATIVE_PATH);
-            trainer.saveDescriptorToFile(file);
-            hog = trainer.getHog();
-        }
+//        HOGDescriptor hog = trainNewModel(modelFile);
+        HOGDescriptor hog = trainDescriptor(modelFile, positivePath, negativePath);
+        detect(hog, testPath);
+    }
 
+    private static HOGDescriptor loadDescriptor(String modelFile) {
+        HogSvmUtils trainer = new HogSvmUtils();
+        return trainer.loadDescriptorFromFile(modelFile);
+    }
+
+    private static HOGDescriptor trainDescriptor(String modelFile, String posPath, String negPath) {
+        HogSvmUtils trainer = new HogSvmUtils();
+        trainer.train(posPath, negPath);
+        trainer.saveDescriptorToFile(modelFile);
+        return trainer.getHog();
+    }
+
+
+    private static void detect(HOGDescriptor hog, String[] testPath) {
         HogSvmDetector detector = new HogSvmDetector(hog);
         DetectionRenderer renderer = new ROIRenderer();
 
         for (String s : testPath)
-            testDetection(s, detector, renderer);
-
-        detector.release();
+            detectAndView(s, detector, renderer);
     }
 
-    private static void testDetection(String imagePath, HogSvmDetector detector, DetectionRenderer renderer) {
+    private static void detectAndView(String imagePath, HogSvmDetector detector, DetectionRenderer renderer) {
         System.out.println("\nProcessing image: " + imagePath);
         Mat image = imread(imagePath);
         if (image.empty()) {
@@ -69,7 +72,7 @@ public class HogSvmSample {
 
             renderer.render(image, result.getRects(), result.getScores(), true);
             imshow("Result", image);
-            System.out.printf("Detected for %s ms", (System.nanoTime() - msStart)/1000/1000 );
+            System.out.printf("Detected for %s ms", (System.nanoTime() - msStart) / 1000 / 1000);
             waitKey(0);
         } finally {
             image.release();

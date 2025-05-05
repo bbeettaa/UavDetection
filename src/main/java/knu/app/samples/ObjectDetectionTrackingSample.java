@@ -1,4 +1,4 @@
-package knu.app.SAMPLES;
+package knu.app.samples;
 
 import knu.app.bll.processors.detection.DetectionResult;
 import knu.app.bll.processors.detection.ORBObjectDetector;
@@ -27,7 +27,6 @@ public class ObjectDetectionTrackingSample {
 //        ObjectDetector detector = new SURFObjectDetector(imread(templatePath, IMREAD_GRAYSCALE), 200, 4, 4, true, true);
 //        ObjectDetector detector = new SIFTObjectDetector(imread(templatePath, IMREAD_GRAYSCALE));
         ObjectDetector detector = new ORBObjectDetector(imread(templatePath, IMREAD_GRAYSCALE));
-//        ObjectDetector detector = new FarnebackMotionDetector(0.5);
 
 //        DetectionRenderer renderer = new ROIRenderer();
 //        DetectionRenderer renderer = new CenterPointRenderer();

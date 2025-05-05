@@ -1,4 +1,4 @@
-package knu.app.SAMPLES;
+package knu.app.samples;
 
 import org.bytedeco.javacv.CanvasFrame;
 import org.bytedeco.javacv.FFmpegFrameGrabber;

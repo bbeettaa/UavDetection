@@ -1,5 +1,4 @@
-package knu.app;
-
+package knu.app.samples;
 
 import knu.app.bll.buffers.BufferElement;
 import knu.app.bll.buffers.Bufferable;
@@ -66,21 +65,17 @@ public class PipelinesDemoSample {
     private static Runnable createFrameWriteThread(Bufferable<Mat> frameWriterBuffer, FramePostprocessorValue<Long> fpsPostprocessor, OpenCVFrameConverter.ToMat converter) {
         return () -> {
 
-        FrameDisplayer displayer = new CanvasDisplayer("Canny + FPS", 1.0);
-            try {
-                Mat mat;
-                while (!Thread.currentThread().isInterrupted()) {
-                    BufferElement<Mat> element = frameWriterBuffer.get();
-                    if (element != null) {
-                        mat = element.getData();
-                        mat = fpsPostprocessor.process(mat);
-                        displayer.show(converter.convert(mat));
-                    }
-
-
+        FrameDisplayer displayer = new CanvasDisplayer("Canny + FPS");
+            Mat mat;
+            while (!Thread.currentThread().isInterrupted()) {
+                BufferElement<Mat> element = frameWriterBuffer.get();
+                if (element != null) {
+                    mat = element.getData();
+                    mat = fpsPostprocessor.process(mat);
+                    displayer.show(converter.convert(mat));
                 }
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+
+
             }
         };
     }
