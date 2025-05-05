@@ -3,7 +3,7 @@ package knu.app.ui.modules;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
-import knu.app.HogSvmTrainer;
+import knu.app.bll.utils.HogSvmUtils;
 import knu.app.bll.processors.detection.*;
 import knu.app.bll.processors.tracker.CSRTTracker;
 import knu.app.bll.processors.tracker.MilTracker;
@@ -61,7 +61,7 @@ public class ProcessingModule implements UIModule<Mat> {
         detectors.add(new ORBDetectorUI(new ORBObjectDetector(templateImg)));
         detectors.add(new SIFTDetectorUI(new SIFTObjectDetector(templateImg)));
         detectors.add(new SURFDetectorUI(new SURFObjectDetector(templateImg)));
-        detectors.add(new HogDetectorUI(new HogSvmDetector(new HogSvmTrainer().loadDescriptorFromFile(file))));
+        detectors.add(new HogDetectorUI(new HogSvmDetector(new HogSvmUtils().loadDescriptorFromFile(file))));
 
         trackers.add(new KalmanTrackerUI(new ObjectTrackerWithKalman()));
         trackers.add(new LucasKanadeTrackerUI(new OpticalFlowTracker()));
