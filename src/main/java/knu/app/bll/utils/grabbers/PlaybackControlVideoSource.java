@@ -1,4 +1,4 @@
-package knu.app.utils.video;
+package knu.app.bll.utils.grabbers;
 
 import org.bytedeco.javacv.Frame;
 
@@ -7,11 +7,11 @@ import java.io.IOException;
 public interface PlaybackControlVideoSource {
     void play();
 
-    void pause()  throws IOException;
+    void pause() throws IOException;
 
     void stop() throws IOException;
 
-    void seek(double timeInSeconds) throws IOException;
+    void seek(long timestamp) throws IOException;
 
     void stepForward();
 
@@ -19,31 +19,39 @@ public interface PlaybackControlVideoSource {
 
     void setPlaybackSpeed(float speed);
 
-    double getCurrentPosition();
+    long getCurrentPosition();
 
-    double getDuration();
+    long getDuration();
 
     Frame grab() throws Exception;
 
     double getFrameRate();
 
-    void start() ;
+    void start();
 
     void resume();
 
     void setInputSource(String inputSource);
 
-    void setWidth(int width) ;
+    void setWidth(int width);
 
-    void setHeight(int height) ;
+    void setHeight(int height);
 
-    void setFramerate(int framerate) ;
+    void setFramerate(int framerate);
 
-    String getInputSource() ;
+    String getInputSource();
 
     int getWidth();
 
     int getHeight();
 
     int getFramerate();
+
+
+    boolean isRunning();
+
+    boolean isPaused();
+
+
 }
+
