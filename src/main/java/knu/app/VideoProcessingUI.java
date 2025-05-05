@@ -1,34 +1,42 @@
 package knu.app;
 
 import imgui.*;
-import imgui.flag.ImGuiConfigFlags;
+import imgui.flag.*;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
-import knu.app.buffers.BufferElement;
-import knu.app.buffers.Bufferable;
-import knu.app.buffers.OverwritingQueueBlockedFrameBuffer;
-import knu.app.buffers.OverwritingQueueFrameBuffer;
-import knu.app.preprocessors.BlurPreprocessor;
-import knu.app.preprocessors.CannyPreprocessor;
-import knu.app.preprocessors.GrayColorPreprocessor;
-import knu.app.preprocessors.KMeansPreprocessor;
-import knu.app.ui.LocalizationManager;
+import imgui.type.ImBoolean;
+import imgui.type.ImInt;
+import knu.app.bll.buffers.BufferElement;
+import knu.app.bll.buffers.Bufferable;
+import knu.app.bll.buffers.OverwritingQueueBlockedFrameBuffer;
+import knu.app.bll.preprocessors.BlurPreprocessor;
+import knu.app.bll.preprocessors.CannyPreprocessor;
+import knu.app.bll.preprocessors.FrameSizerPreprocessor;
+import knu.app.bll.preprocessors.GrayColorPreprocessor;
+import knu.app.bll.utils.LocalizationManager;
+import knu.app.bll.utils.grabbers.PlaybackControlVideoSource;
+import knu.app.bll.utils.grabbers.PlaybackFFmpegRawVideoSource;
+import knu.app.ui.DockSpaceUIModule;
 import knu.app.ui.MainMenuUI;
 import knu.app.ui.menu.*;
-import knu.app.ui.tools.*;
-//import knu.app.ui.menu.ToolsMenuSection;
-//import knu.app.ui.tools.VideoOutputUI;
-import knu.app.utils.video.NativeFFmpegVideoSource;
-import knu.app.utils.video.VideoSource;
+import knu.app.ui.modules.*;
 import org.bytedeco.javacv.Frame;
+import org.bytedeco.javacv.OpenCVFrameConverter;
+import org.bytedeco.opencv.global.opencv_core;
+import org.bytedeco.opencv.opencv_core.Mat;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL33;
+import org.opencv.core.Core;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import static org.bytedeco.opencv.global.opencv_imgcodecs.IMREAD_GRAYSCALE;
+import static org.bytedeco.opencv.global.opencv_imgcodecs.imread;
 
 public class VideoProcessingUI {
     private final int width = 1280;
@@ -38,43 +46,79 @@ public class VideoProcessingUI {
     private final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
 
     private final List<UIModule<?>> uiModules = new ArrayList<>();
-    private final ExecutorService executor = Executors.newFixedThreadPool(8);
+    private final ExecutorService executor;
+    private final OpenCVFrameConverter.ToMat converter = new OpenCVFrameConverter.ToMat();
 
     public VideoProcessingUI() {
+        int th1 = 4;
+        int th2 = Runtime.getRuntime().availableProcessors() - th1;
+        executor = Executors.newFixedThreadPool(th1);
+        opencv_core.setNumThreads(th2);
+        System.loadLibrary(Core.NATIVE_LIBRARY_NAME); // CUDA
+
         initModules();
     }
 
     public void initModules() {
-        Bufferable<Frame> frameReaderBuffer = new OverwritingQueueBlockedFrameBuffer<>("frameReaderBuffer", 100);
-        Bufferable<Frame> processingBuffer = new OverwritingQueueBlockedFrameBuffer<>("processingBuffer", 100);
-        Bufferable<Frame> frameWriterBuffer = new OverwritingQueueBlockedFrameBuffer<>("frameWriterBuffer", 100);
+        Bufferable<Mat> frameReaderBuffer = new OverwritingQueueBlockedFrameBuffer<>(4);
+        Bufferable<Mat> processingBuffer = new OverwritingQueueBlockedFrameBuffer<>(4);
+        Bufferable<Mat> frameWriterBuffer = new OverwritingQueueBlockedFrameBuffer<>(4);
+
+        PlaybackControlVideoSource videoSource = new PlaybackFFmpegRawVideoSource();
+
+        PureVideoGrabber videoGrabber = new PureVideoGrabber(videoSource);
+        VideoRenderer videoRenderer = new VideoRenderer();
+
+        String imageDescription = "/home/bedu/Документы/drone.jpg";
+        Mat image = imread(imageDescription, IMREAD_GRAYSCALE);
+        UIModule<Mat> preprocessingUi = new PreprocessorUiModule(new GrayColorPreprocessor(), new BlurPreprocessor(), new CannyPreprocessor(), new FrameSizerPreprocessor(1920, 1080));
+        UIModule<Mat> processingUi = new ProcessingModule(image);
 
         StatisticDisplayUI stat = new StatisticDisplayUI();
 
-        VideoSource videoSource = new NativeFFmpegVideoSource();
-        PureVideoGrabber videoGrabber = new PureVideoGrabber(videoSource, frameReaderBuffer, stat);
-        VideoRenderer videoRenderer = new VideoRenderer(frameWriterBuffer, stat);
+        createPipeline(videoGrabber, frameReaderBuffer, frameWriterBuffer, videoRenderer, preprocessingUi, processingBuffer, processingUi);
 
-//        PlaybackControlVideoSource videoSource = new NativePlaybackFFmpegVideoSource();
-//        VideoGrabber<Frame> videoGrabber = new VideoGrabber<>(videoSource, frameReaderBuffer, executor);
-//        UIModule<Void> playbackUI = new PlaybackControlUI(videoGrabber, videoRenderer);
+        // Upper Menu
+        MainMenuUI mainMenu = new MainMenuUI(
+                new MainMenuSection(LocalizationManager.tr("menu.section.instruments.name"),
+                        new ToggleMenuSection(videoGrabber),
+                        new ToggleMenuSection(videoRenderer),
+                        new ToggleMenuSection(preprocessingUi),
+                        new ToggleMenuSection(processingUi)
+                ),
+                new MainMenuSection(LocalizationManager.tr("menu.section.statistics.name"), new StatisticMenuSection(stat))
+        );
 
-        UIModule<Frame> preprocessingUi = new PreprocessorUiModule(new GrayColorPreprocessor(), new BlurPreprocessor(), new CannyPreprocessor());
-        UIModule<Frame> processingUi = new ProcessingUiModule(new KMeansPreprocessor(), executor, processingBuffer);
+        // Rendering
+        uiModules.add(new DockSpaceUIModule(VideoRenderer.VEDIO_OUTPUT_ID, ProcessingModule.PROCESSOR_ID, PureVideoGrabber.GRABBER_ID));
+        uiModules.add(videoRenderer);
+        uiModules.add(videoGrabber);
+        uiModules.add(mainMenu);
+        uiModules.add(stat);
+        uiModules.add(preprocessingUi);
+        uiModules.add(processingUi);
+    }
 
-
+    private void createPipeline(PureVideoGrabber videoGrabber, Bufferable<Mat> frameReaderBuffer, Bufferable<Mat> frameWriterBuffer,
+                                VideoRenderer videoRenderer, UIModule<Mat> preprocessingUi, Bufferable<Mat> processingBuffer,
+                                UIModule<Mat> processingUi) {
         executor.submit(() -> {
-            Frame frame;
             while (!Thread.interrupted()) {
-                frame = videoGrabber.execute(null);
+                Frame frame = videoGrabber.execute(null);
                 if (frame != null) {
-                    frameReaderBuffer.put(new BufferElement<>(frame));
+                    frameReaderBuffer.put(new BufferElement<>(converter.convert(frame)));
                 }
             }
         });
         executor.submit(() -> {
+
             while (!Thread.currentThread().isInterrupted()) {
-                videoRenderer.execute(null);
+                BufferElement<Mat> element = frameWriterBuffer.get();
+                if (element != null) {
+                    Frame fr = converter.convert(element.getData());
+                    videoRenderer.execute(fr);
+//                    canvas.showImage(converter.convert(element.getData()));
+                }
             }
         });
 
@@ -82,9 +126,9 @@ public class VideoProcessingUI {
         executor.submit(() -> {
             while (!Thread.interrupted()) {
                 try {
-                    BufferElement<Frame> o = frameReaderBuffer.get();
+                    BufferElement<Mat> o = frameReaderBuffer.get();
                     if (o != null) {
-                        Frame f = o.getData();
+                        Mat f = o.getData();
                         f = preprocessingUi.execute(f);
                         processingBuffer.put(new BufferElement<>(f));
                     }
@@ -94,11 +138,13 @@ public class VideoProcessingUI {
             }
         });
         executor.submit(() -> {
+
             while (!Thread.interrupted()) {
                 try {
-                    BufferElement<Frame> o = processingBuffer.get();
-                    if (o != null) {
-                        Frame f = o.getData();
+                    BufferElement<Mat> o = processingBuffer.get();
+                    if (o != null && o.getData() != null) {
+                        Mat f = new Mat();
+                        o.getData().copyTo(f);
                         f = processingUi.execute(f);
                         frameWriterBuffer.put(new BufferElement<>(f));
                     }
@@ -107,31 +153,9 @@ public class VideoProcessingUI {
                 }
             }
         });
-
-
-        // Upper Menu
-        MainMenuUI mainMenu = new MainMenuUI(
-                new MainMenuSection(LocalizationManager.tr("menu.section.instruments.name"),
-                        new ToggleMenuSection(videoGrabber),
-                        new ToggleMenuSection(videoRenderer),
-//                        new ToggleMenuSection(playbackUI),
-                        new ToggleMenuSection(preprocessingUi),
-                        new ToggleMenuSection(processingUi)
-                ),
-                new MainMenuSection(LocalizationManager.tr("menu.section.statistics.name"), new StatisticMenuSection(stat))
-        );
-
-        // Rendering
-        uiModules.add(videoRenderer);
-        uiModules.add(videoGrabber);
-        uiModules.add(mainMenu);
-        uiModules.add(stat);
-//        uiModules.add(playbackUI);
-        uiModules.add(preprocessingUi);
-        uiModules.add(processingUi);
     }
 
-    public void run() {
+    public void run() throws IOException {
         initGLFW();
         initImGui();
         renderLoop();
@@ -156,9 +180,8 @@ public class VideoProcessingUI {
     private void initImGui() {
         ImGui.createContext();
         final ImGuiIO io = ImGui.getIO();
-        io.setIniFilename(null); // Без .ini-файлу
-//        io.addConfigFlags(ImGuiConfigFlags.DockingEnable);
-//        io.addConfigFlags(ImGuiConfigFlags.ViewportsEnable);
+        io.setIniFilename(null);
+        io.addConfigFlags(ImGuiConfigFlags.DockingEnable);
 
         imGuiGlfw.init(window, false);
         imGuiGl3.init("#version 330 core");
@@ -172,8 +195,6 @@ public class VideoProcessingUI {
 
             showGui();
             ImGui.render();
-            processing();
-
 
             GL33.glViewport(0, 0, width, height);
             GL33.glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -206,38 +227,7 @@ public class VideoProcessingUI {
         GLFW.glfwTerminate();
     }
 
-
-    private void processing() {
-//        try {
-//            BufferElement<Frame> o = frameReaderBuffer.get();
-//            if (o != null) {
-//                Frame f = o.getData();
-//                f = preprocessingUi.execute(f);
-//                f = processingUi.execute(f);
-//                frameWriterBuffer.put(new BufferElement<>(f));
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-
-//        executor.submit(() -> {
-//            while (!Thread.interrupted()) {
-//                try {
-//                    BufferElement<Frame> o = frameReaderBuffer.get();
-//                    if (o != null) {
-//                        Frame f = o.getData();
-//                        f = preprocessingUi.execute(f);
-//                        f = processingUi.execute(f);
-//                        frameWriterBuffer.put(new BufferElement<>(f));
-//                    }
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//        });
-    }
-
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         new VideoProcessingUI().run();
     }
 }
