@@ -1,4 +1,4 @@
-package knu.app.utils.textures;
+package knu.app.bll.utils.textures;
 
 import java.awt.image.BufferedImage;
 

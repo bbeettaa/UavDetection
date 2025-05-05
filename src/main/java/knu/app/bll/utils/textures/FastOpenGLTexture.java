@@ -1,9 +1,8 @@
-package knu.app.utils.textures;
+package knu.app.bll.utils.textures;
 
 import imgui.ImGui;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12; // Для GL_BGR
-import org.lwjgl.opengl.GL30;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;

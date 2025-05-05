@@ -1,4 +1,4 @@
-package knu.app.postprocessors;
+package knu.app.bll.postprocessors;
 
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Point;
@@ -13,7 +13,7 @@ public class FPSOverlayPostprocessorValue implements FramePostprocessorValue<Lon
     private long lastTime = System.nanoTime();
     long currentTime;
 
-    double sizeScalar = 0.3;
+    final double sizeScalar = 0.3;
 
     @Override
     public void setValue(Long val) {

@@ -1,4 +1,4 @@
-package knu.app.utils.textures;
+package knu.app.bll.utils.textures;
 
 import imgui.ImGui;
 import org.lwjgl.opengl.GL33;
@@ -38,8 +38,7 @@ public class CpuImageTexture implements UiTexturable {
         if (dataBuffer instanceof DataBufferInt) {
             // Обработка INT-буфера (обычно TYPE_INT_ARGB или TYPE_INT_RGB)
             int[] pixels = ((DataBufferInt) dataBuffer).getData();
-            for (int i = 0; i < pixels.length; i++) {
-                int pixel = pixels[i];
+            for (int pixel : pixels) {
                 cachedBuffer.put((byte) ((pixel >> 16) & 0xFF)); // R
                 cachedBuffer.put((byte) ((pixel >> 8) & 0xFF));   // G
                 cachedBuffer.put((byte) (pixel & 0xFF));          // B

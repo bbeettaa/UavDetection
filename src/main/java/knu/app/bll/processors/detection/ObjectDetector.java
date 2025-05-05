@@ -1,4 +1,4 @@
-package knu.app.detection.detection;
+package knu.app.bll.processors.detection;
 
 import org.bytedeco.opencv.opencv_core.Mat;
 

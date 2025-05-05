@@ -1,4 +1,4 @@
-package knu.app.postprocessors;
+package knu.app.bll.postprocessors;
 
 import org.bytedeco.opencv.opencv_core.Mat;
 

@@ -1,5 +1,6 @@
-package knu.app.detection.detection;
+package knu.app.bll.processors.detection;
 
+import knu.app.bll.utils.Utils;
 import org.bytedeco.opencv.opencv_core.*;
 import org.bytedeco.opencv.opencv_features2d.BFMatcher;
 import org.bytedeco.opencv.opencv_features2d.ORB;
@@ -9,17 +10,21 @@ import java.util.LinkedList;
 import static org.bytedeco.opencv.global.opencv_core.NORM_HAMMING;
 
 public class ORBObjectDetector implements ObjectDetector {
-    private final ORB orb;
+    private ORB orb;
     private final BFMatcher matcher;
     private final Mat templateDescriptors;
-    private final KeyPointVector templateKeypoints;
 
     public ORBObjectDetector(Mat templateImage) {
-        this.orb = ORB.create();
+        init(500, 1.2f, 8, 31, 0, 2, ORB.HARRIS_SCORE, 31, 20);
         this.matcher = BFMatcher.create(NORM_HAMMING, true);
-        this.templateKeypoints = new KeyPointVector();
         this.templateDescriptors = new Mat();
-        orb.detectAndCompute(templateImage, new Mat(), templateKeypoints, templateDescriptors);
+        orb.detectAndCompute(templateImage, new Mat(), new KeyPointVector(), templateDescriptors);
+    }
+
+    public void init(int nfeatures, float scaleFactor, int nlevels, int edgeThreshold,
+                     int firstLevel, int WTA_K, int scoreType, int patchSize, int fastThreshold) {
+        this.orb = ORB.create(nfeatures, scaleFactor, nlevels, edgeThreshold,
+                firstLevel, WTA_K, scoreType, patchSize, fastThreshold);
     }
 
     @Override
@@ -50,20 +55,7 @@ public class ORBObjectDetector implements ObjectDetector {
             }
         }
 
-        return clusterPoints(matchedPoints, 30.0, 3);
+        return Utils.clusterPoints(matchedPoints, 30.0, 3);
     }
 
-    private LinkedList<Point2f> clusterPoints(LinkedList<Point2f> points, double radius, int minNeighbors) {
-        LinkedList<Point2f> result = new LinkedList<>();
-        for (Point2f pt : points) {
-            int neighbors = 0;
-            for (Point2f other : points) {
-                double dx = pt.x() - other.x();
-                double dy = pt.y() - other.y();
-                if (dx * dx + dy * dy <= radius * radius) neighbors++;
-            }
-            if (neighbors >= minNeighbors) result.add(pt);
-        }
-        return result;
-    }
 }

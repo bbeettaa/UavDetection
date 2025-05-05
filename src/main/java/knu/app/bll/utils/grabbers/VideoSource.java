@@ -1,4 +1,4 @@
-package knu.app.utils.video;
+package knu.app.bll.utils.grabbers;
 
 import org.bytedeco.javacv.Frame;
 
@@ -33,4 +33,6 @@ public interface VideoSource {
     int getHeight();
 
     int getFramerate();
+
+
 }

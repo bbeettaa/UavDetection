@@ -1,17 +1,17 @@
 package knu.app;
 
 
-import knu.app.buffers.BufferElement;
-import knu.app.buffers.Bufferable;
-import knu.app.buffers.OverwritingQueueBlockedFrameBuffer;
-import knu.app.postprocessors.FPSOverlayPostprocessorValue;
-import knu.app.postprocessors.FramePostprocessorValue;
-import knu.app.preprocessors.*;
-import knu.app.utils.displayer.FrameDisplayer;
-import knu.app.utils.video.NativeFFmpegVideoSource;
-import knu.app.utils.video.NativePlaybackFFmpegVideoSource;
-import knu.app.utils.video.VideoSource;
-import knu.app.utils.displayer.SwingFrameDisplayer;
+import knu.app.bll.buffers.BufferElement;
+import knu.app.bll.buffers.Bufferable;
+import knu.app.bll.buffers.OverwritingQueueBlockedFrameBuffer;
+import knu.app.bll.postprocessors.FPSOverlayPostprocessorValue;
+import knu.app.bll.postprocessors.FramePostprocessorValue;
+import knu.app.bll.preprocessors.FramePreprocessor;
+import knu.app.bll.preprocessors.KMeansPreprocessor;
+import knu.app.bll.utils.displayer.CanvasDisplayer;
+import knu.app.bll.utils.displayer.FrameDisplayer;
+import knu.app.bll.utils.grabbers.PlaybackFFmpegRawVideoSource;
+import knu.app.bll.utils.grabbers.VideoSource;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.OpenCVFrameConverter;
 import org.bytedeco.opencv.global.opencv_core;
@@ -21,29 +21,25 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 
-public class CannyEdgePipeApp {
-    public static void main(String[] args) throws Exception {
-        String inputFile = "/home/bedu/Документы/input.mp4";
+public class PipelinesDemo {
+    public static void main(String[] args) {
+        String inputFile = "input.mp4";
         opencv_core.setNumThreads(0);
 
 
         FramePostprocessorValue<Long> fpsPostprocessor = new FPSOverlayPostprocessorValue();
 
-        VideoSource reader = new NativeFFmpegVideoSource(640,480,inputFile, 60, 3);
-//        VideoSource reader = new NativePlaybackFFmpegVideoSource(1920,1080,inputFile, 60, 3);
-//        FrameReader reader = new GrabberFrameReader(inputFile);
+        VideoSource reader = new PlaybackFFmpegRawVideoSource(inputFile, 60, 3);
         OpenCVFrameConverter.ToMat converter = new OpenCVFrameConverter.ToMat();
 
-        Bufferable<Mat> frameReaderBuffer = new OverwritingQueueBlockedFrameBuffer<>("reader buff", 100);
-        Bufferable<Mat> frameWriterBuffer = new OverwritingQueueBlockedFrameBuffer<>("preprocess buff", 100);
+        Bufferable<Mat> frameReaderBuffer = new OverwritingQueueBlockedFrameBuffer<>(20);
+        Bufferable<Mat> frameWriterBuffer = new OverwritingQueueBlockedFrameBuffer<>( 20);
 
         int availableProcessors = Runtime.getRuntime().availableProcessors();
         ExecutorService executorService = Executors.newFixedThreadPool(availableProcessors);
 
         executorService.submit(createFrameReaderThread(reader, fpsPostprocessor, converter, frameReaderBuffer));
-
         executorService.submit(createPrerocessingThread(frameReaderBuffer, frameWriterBuffer));
-
         executorService.submit(createFrameWriteThread(frameWriterBuffer, fpsPostprocessor, converter));
 
     }
@@ -62,7 +58,6 @@ public class CannyEdgePipeApp {
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
                 throw new RuntimeException(e);
             }
         };
@@ -71,8 +66,7 @@ public class CannyEdgePipeApp {
     private static Runnable createFrameWriteThread(Bufferable<Mat> frameWriterBuffer, FramePostprocessorValue<Long> fpsPostprocessor, OpenCVFrameConverter.ToMat converter) {
         return () -> {
 
-//        FrameDisplayer displayer = new CanvasDisplayer("Canny + FPS", 1.0);
-            FrameDisplayer displayer = new SwingFrameDisplayer();
+        FrameDisplayer displayer = new CanvasDisplayer("Canny + FPS", 1.0);
             try {
                 Mat mat;
                 while (!Thread.currentThread().isInterrupted()) {
@@ -93,12 +87,7 @@ public class CannyEdgePipeApp {
 
     private static Runnable createPrerocessingThread(Bufferable<Mat> frameReaderBuffer, Bufferable<Mat> frameWriterBuffer) {
         return () -> {
-            FramePreprocessor gray = new GrayColorPreprocessor();
-            FramePreprocessor blur = new BlurPreprocessor(1.5);
-            FramePreprocessor canny = new CannyPreprocessor(25, 35);
-            FramePreprocessor kmean = new KMeansPreprocessor(6);
-            FramePreprocessor framePreprocessor = new FPSLimiterPreprocessor(30);
-//            FramePreprocessor framePreprocessor = new FPSLimiterPreprocessor(30);
+            FramePreprocessor kmean = new KMeansPreprocessor(3);
 
             BufferElement<Mat> element;
             Mat mat;
@@ -109,12 +98,7 @@ public class CannyEdgePipeApp {
                     if (element != null) {
                         mat = element.getData();
 
-//                        mat = framePreprocessor.process(mat);
-//                        mat = gray.process(mat);
-//                        mat = blur.process(mat);
-//                        mat = canny.process(mat);
-//                        mat = kmean.process(mat);
-//                        mat = orb.process(mat);
+                        mat = kmean.process(mat);
 
                         frameWriterBuffer.put(new BufferElement<>(mat));
                     }

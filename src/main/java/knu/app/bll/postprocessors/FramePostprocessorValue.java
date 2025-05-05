@@ -1,6 +1,4 @@
-package knu.app.postprocessors;
-
-import org.bytedeco.opencv.opencv_core.Mat;
+package knu.app.bll.postprocessors;
 
 public interface FramePostprocessorValue<T> extends FramePostprocessor {
     void setValue(T val);

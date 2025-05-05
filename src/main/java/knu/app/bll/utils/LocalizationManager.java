@@ -1,4 +1,4 @@
-package knu.app.ui;
+package knu.app.bll.utils;
 
 import java.util.Locale;
 import java.util.ResourceBundle;
