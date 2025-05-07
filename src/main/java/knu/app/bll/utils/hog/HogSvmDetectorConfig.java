@@ -1,4 +1,4 @@
-package knu.app.bll.utils;
+package knu.app.bll.utils.hog;
 
 import org.bytedeco.opencv.opencv_core.Size;
 

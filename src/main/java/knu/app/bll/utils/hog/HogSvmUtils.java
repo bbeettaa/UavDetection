@@ -1,4 +1,4 @@
-package knu.app.bll.utils;
+package knu.app.bll.utils.hog;
 
 import org.bytedeco.javacpp.FloatPointer;
 import org.bytedeco.javacpp.indexer.DoubleIndexer;
@@ -37,15 +37,15 @@ public class HogSvmUtils {
     private static final int BLOCK_STRIDE_L = 8;
     private static final Size BLOCK_STRIDE = new Size(BLOCK_STRIDE_L, BLOCK_STRIDE_L);
 
-    private static final int CELL_SIZE_L = 4;
+    private static final int CELL_SIZE_L = 8;
     private static final Size CELL_SIZE = new Size(CELL_SIZE_L, CELL_SIZE_L);
 
     private static final int NBINS = 9;
 
-    private static final int TERM_CRITERIA = TermCriteria.MAX_ITER | TermCriteria.EPS;
-    private static final int MAX_ITERATION_COUNT = 20_000;
+    private static final int TERM_CRITERIA = TermCriteria.EPS;// | TermCriteria.MAX_ITER;
+    private static final int MAX_ITERATION_COUNT = 100_000;
 
-    private final int negativePatchesStep = BLOCK_STRIDE_L;
+    private final int negativePatchesStep = 1;
 
     public HogSvmUtils() {
         this(createHog());
