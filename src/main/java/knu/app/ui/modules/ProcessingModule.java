@@ -3,8 +3,8 @@ package knu.app.ui.modules;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
-import knu.app.bll.utils.HogSvmDetectorConfig;
-import knu.app.bll.utils.HogSvmUtils;
+import knu.app.bll.utils.hog.HogSvmDetectorConfig;
+import knu.app.bll.utils.hog.HogSvmUtils;
 import knu.app.bll.processors.detection.*;
 import knu.app.bll.processors.tracker.CSRTTracker;
 import knu.app.bll.processors.tracker.MilTracker;
@@ -17,7 +17,6 @@ import knu.app.ui.processings.renders.FeaturedPointsRendererUI;
 import knu.app.ui.processings.renders.RendererUI;
 import knu.app.ui.processings.renders.RoiRendererUI;
 import knu.app.ui.processings.trackers.*;
-import org.bytedeco.javacv.OpenCVFrameConverter;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Point2f;
 

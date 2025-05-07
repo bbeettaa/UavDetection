@@ -1,14 +1,13 @@
 package knu.app.bll.processors.detection;
 
 
-import knu.app.bll.utils.HogSvmDetectorConfig;
+import knu.app.bll.utils.hog.HogSvmDetectorConfig;
 import org.bytedeco.javacpp.DoublePointer;
 import org.bytedeco.javacpp.FloatPointer;
 import org.bytedeco.javacpp.IntPointer;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Rect;
 import org.bytedeco.opencv.opencv_core.RectVector;
-import org.bytedeco.opencv.opencv_core.Size;
 import org.bytedeco.opencv.opencv_objdetect.HOGDescriptor;
 
 import java.util.ArrayList;
