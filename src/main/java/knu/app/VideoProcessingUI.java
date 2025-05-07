@@ -52,8 +52,6 @@ public class VideoProcessingUI {
         int th2 = Runtime.getRuntime().availableProcessors() - th1;
         executor = Executors.newFixedThreadPool(th1);
         opencv_core.setNumThreads(th2);
-        System.loadLibrary(Core.NATIVE_LIBRARY_NAME); // CUDA
-
         initModules();
     }
 

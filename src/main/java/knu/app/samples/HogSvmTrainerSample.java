@@ -4,7 +4,7 @@ import knu.app.bll.processors.detection.DetectionResult;
 import knu.app.bll.processors.detection.HogSvmDetector;
 import knu.app.bll.processors.draw.DetectionRenderer;
 import knu.app.bll.processors.draw.ROIRenderer;
-import knu.app.bll.utils.HogSvmUtils;
+import knu.app.bll.utils.hog.*;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_objdetect.HOGDescriptor;
 
@@ -26,31 +26,28 @@ public class HogSvmTrainerSample {
                 "/mnt/lindisk/datasets/drone.vis/hogSamples/samples/Clip_50_001408_crop_3.png",
                 "/mnt/lindisk/datasets/drone.vis/hogSamples/samples/Clip_50_001248_crop_9.png",
                 "/mnt/lindisk/datasets/drone.vis/hogSamples/samples/drone.jpg",
-                "/mnt/lindisk/datasets/drone.vis/hogSamples/negative/HELICOPTER_004485.png",
-                "/mnt/lindisk/datasets/drone.vis/hogSamples/negative/0000352_02353_d_0000551.jpg",
+                "/mnt/lindisk/datasets/drone.vis/hogSamples/samples/HELICOPTER_004485.png",
+                "/mnt/lindisk/datasets/drone.vis/hogSamples/samples/0000352_02353_d_0000551.jpg",
         };
-        String modelFile = "src/main/resources/HOGDescriptorEsp1";
+        String modelFile = "src/main/resources/HOGDescriptorEsp3";
 
-//        HOGDescriptor hog = trainNewModel(modelFile);
-        HOGDescriptor hog = trainDescriptor(modelFile, positivePath, negativePath);
+//        HOGDescriptor hog = HogSvmUtils.loadDescriptorFromFile(modelFile);
+        HOGDescriptor hog = trainCPUDescriptor(modelFile, positivePath, negativePath);
         detect(hog, testPath);
     }
 
-    private static HOGDescriptor loadDescriptor(String modelFile) {
-        HogSvmUtils trainer = new HogSvmUtils();
-        return trainer.loadDescriptorFromFile(modelFile);
+
+    private static HOGDescriptor trainCPUDescriptor(String modelFile, String posPath, String negPath) {
+        HogTrainer trainer = new CpuHogTrainerFullSizedNegativeSample();
+        HOGDescriptor hog = trainer.train(posPath, negPath);
+        HogSvmUtils.saveDescriptorToFile(modelFile, hog);
+        return hog;
     }
 
-    private static HOGDescriptor trainDescriptor(String modelFile, String posPath, String negPath) {
-        HogSvmUtils trainer = new HogSvmUtils();
-        trainer.train(posPath, negPath);
-        trainer.saveDescriptorToFile(modelFile);
-        return trainer.getHog();
-    }
 
 
     private static void detect(HOGDescriptor hog, String[] testPath) {
-        HogSvmDetector detector = new HogSvmDetector(hog);
+        HogSvmDetector detector = new HogSvmDetector(hog, HogSvmDetectorConfig.withTestConfig());
         DetectionRenderer renderer = new ROIRenderer();
 
         for (String s : testPath)
@@ -78,4 +75,5 @@ public class HogSvmTrainerSample {
             image.release();
         }
     }
+
 }
