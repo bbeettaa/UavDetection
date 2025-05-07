@@ -13,7 +13,7 @@ import knu.app.ui.modules.UIModule;
 
 public class DockSpaceUIModule implements UIModule<Object> {
     private boolean firstRun = true;
-    private final int mainDockID ;
+    private  int mainDockID ;
     private final String mainWindowId;
     private final String leftWindowId;
     private final String bottomWindowId;
@@ -22,7 +22,6 @@ public class DockSpaceUIModule implements UIModule<Object> {
         this.mainWindowId = mainWindowId;
         this.leftWindowId = leftWindowId;
         this.bottomWindowId = bottomWindowId;
-        mainDockID = ImGui.getID("MainDockSpace");
     }
 
 
@@ -50,6 +49,7 @@ public class DockSpaceUIModule implements UIModule<Object> {
                         ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove |
                         ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoNavFocus);
 
+        mainDockID = ImGui.getID("MainDockSpace");
         ImGui.dockSpace(mainDockID);
 
 
