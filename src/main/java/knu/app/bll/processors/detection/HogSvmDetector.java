@@ -1,6 +1,7 @@
 package knu.app.bll.processors.detection;
 
 
+import knu.app.bll.utils.HogSvmDetectorConfig;
 import org.bytedeco.javacpp.DoublePointer;
 import org.bytedeco.javacpp.FloatPointer;
 import org.bytedeco.javacpp.IntPointer;
@@ -20,22 +21,11 @@ import static org.bytedeco.opencv.global.opencv_imgproc.cvtColor;
 
 public class HogSvmDetector implements ObjectDetector {
     private final HOGDescriptor hog;
-    private  double hitThreshold = 1.0;
-    private  double scale = 1.02;
-    private  double finalThreshold = 0.0;
+    private final HogSvmDetectorConfig c;
 
-    private  Size winStride = new Size(16, 16);
-
-    private  Size padding = new Size(0, 0);
-    private  boolean useMeanShiftGrouping = false;
-
-    private  double weightThreshold = 0.00;
-
-    private  float scoreThreshold = 1.0f;
-    private  float nmsThreshold = 0.4f;
-
-    public HogSvmDetector(HOGDescriptor hog) {
+    public HogSvmDetector(HOGDescriptor hog, HogSvmDetectorConfig c) {
         this.hog = hog;
+        this.c = c;
     }
 
 
@@ -47,108 +37,56 @@ public class HogSvmDetector implements ObjectDetector {
         RectVector detections = new RectVector();
         DoublePointer weights = new DoublePointer();
 
-        hog.detectMultiScale(gray, detections, weights, hitThreshold, winStride, padding, scale, finalThreshold, useMeanShiftGrouping);
+        // 1 detect rois
+        hog.detectMultiScale(gray, detections, weights, c.getHitThreshold(), c.getWinStride(), c.getPadding(),
+                c.getScale(), c.getFinalThreshold(), c.isUseMeanShiftGrouping());
 
-        var boxes = new RectVector(detections);
-        var weightPointer = new FloatPointer(weights);
-        var indices = new IntPointer();
+        // 2 group
+        hog.groupRectangles(detections, weights, c.getGroupThreshold(), c.getEps());
 
-        NMSBoxes(boxes, weightPointer, scoreThreshold, nmsThreshold, indices);
+        // 3 Конвертируем назад в структуры для NMS
+        RectVector groupedBoxes = new RectVector(detections.size());
+        FloatPointer groupedWeights = new FloatPointer(weights.limit());
+        for (int i = 0; i < detections.size(); i++) {
+            groupedBoxes.put(i, detections.get(i));
+            groupedWeights.put(i, (float) weights.get(i));
+        }
 
+        IntPointer indices = new IntPointer(weights.limit());
+        NMSBoxes(groupedBoxes, groupedWeights, c.getScoreThreshold(), c.getNmsThreshold(), indices);
+
+
+        // 6. Считываем результаты NMS
         List<Rect> filtered = new ArrayList<>();
         List<Double> scores = new ArrayList<>();
-        if (!detections.empty() && indices.capacity() > 0) {
-            for (int idx : indices.getStringCodePoints()) {
-                if (weights.get(idx) >= weightThreshold) {
-                    filtered.add(boxes.get(idx));
-                    scores.add(weights.get(idx));
-                }
+        int count = (int) indices.limit();
+        for (int i = 0; i < count; i++) {
+            int idx = indices.get(i);
+            double score = groupedWeights.get(idx);
+            if (score >= c.getWeightThreshold()) {
+                filtered.add(groupedBoxes.get(idx));
+                scores.add(score);
             }
         }
 
+
         indices.close();
-        boxes.close();
-        weightPointer.close();
         detections.close();
         weights.close();
 
         gray.release();
-        return new DetectionResult(filtered, scores);
+        return new
+
+                DetectionResult(filtered, scores);
     }
 
     public HOGDescriptor getHog() {
         return hog;
     }
 
-    public double getHitThreshold() {
-        return hitThreshold;
+    public HogSvmDetectorConfig getConfig() {
+        return c;
     }
 
-    public void setHitThreshold(double hitThreshold) {
-        this.hitThreshold = hitThreshold;
-    }
 
-    public double getScale() {
-        return scale;
-    }
-
-    public void setScale(double scale) {
-        this.scale = scale;
-    }
-
-    public double getFinalThreshold() {
-        return finalThreshold;
-    }
-
-    public void setFinalThreshold(double finalThreshold) {
-        this.finalThreshold = finalThreshold;
-    }
-
-    public Size getWinStride() {
-        return winStride;
-    }
-
-    public void setWinStride(int winStride) {
-        this.winStride = new Size(winStride, winStride);
-    }
-
-    public Size getPadding() {
-        return padding;
-    }
-
-    public void setPadding(int padding) {
-        this.padding = new Size(padding, padding);
-    }
-
-    public boolean isUseMeanShiftGrouping() {
-        return useMeanShiftGrouping;
-    }
-
-    public void setUseMeanShiftGrouping(boolean useMeanShiftGrouping) {
-        this.useMeanShiftGrouping = useMeanShiftGrouping;
-    }
-
-    public double getWeightThreshold() {
-        return weightThreshold;
-    }
-
-    public void setWeightThreshold(double weightThreshold) {
-        this.weightThreshold = weightThreshold;
-    }
-
-    public float getScoreThreshold() {
-        return scoreThreshold;
-    }
-
-    public void setScoreThreshold(float scoreThreshold) {
-        this.scoreThreshold = scoreThreshold;
-    }
-
-    public float getNmsThreshold() {
-        return nmsThreshold;
-    }
-
-    public void setNmsThreshold(float nmsThreshold) {
-        this.nmsThreshold = nmsThreshold;
-    }
 }
