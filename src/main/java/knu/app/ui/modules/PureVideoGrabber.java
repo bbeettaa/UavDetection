@@ -2,18 +2,21 @@ package knu.app.ui.modules;
 
 import imgui.ImGui;
 import imgui.type.ImBoolean;
-import imgui.type.ImFloat;
 import imgui.type.ImInt;
+import knu.app.bll.utils.LocalizationManager;
 import knu.app.bll.utils.Utils;
 import knu.app.bll.utils.grabbers.PlaybackControlVideoSource;
 import org.bytedeco.javacv.Frame;
 
 import javax.swing.*;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Logger;
 
 public class PureVideoGrabber implements UIModule<Frame> {
+    private static final Logger logger = Logger.getLogger(PureVideoGrabber.class.getName());
     private final PlaybackControlVideoSource reader;
     private String videoFilePath;
     private boolean isPlaying;
@@ -42,33 +45,26 @@ public class PureVideoGrabber implements UIModule<Frame> {
     public void render() {
         if (!isOp.get()) return;
         ImGui.begin(GRABBER_ID, isOp);
+        videoGrabberDialog();
+        videoInformation();
+        videoParameters();
+        timeLineControl();
+        playbackControl();
+        ImGui.end();
+    }
 
-        if (ImGui.button("Open Video File")) {
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setDialogTitle("Select Video File");
-            int result = fileChooser.showOpenDialog(null);
-            if (result == JFileChooser.APPROVE_OPTION) {
-                videoFilePath = fileChooser.getSelectedFile().getAbsolutePath();
-                loadVideoFile();
-            }
+    private void playbackControl() {
+        if (ImGui.button(!isPlaying ? LocalizationManager.tr("status.play") : LocalizationManager.tr("status.pause"))) {
+            if (!isPlaying) play();
+            else pause();
         }
-        // 2. Video Information
         ImGui.sameLine();
-        ImGui.text("Status: " + (reader.isRunning() ? (reader.isPaused() ? "Paused" : "Playing") : "Stopped"));
+        if (ImGui.button(LocalizationManager.tr("status.stop"))) {
+            stop();
+        }
+    }
 
-        // 5. Video Parameters (disabled during playback)
-        ImGui.newLine();
-        ImGui.pushItemWidth(100);
-        ImGui.beginDisabled(reader.isRunning());
-        ImGui.inputInt("Width", width, 20, 100);
-        ImGui.sameLine();
-        ImGui.inputInt("Height", height, 10, 100);
-        ImGui.sameLine();
-        ImGui.inputInt("Framerate", framerate);
-        ImGui.popItemWidth();
-        ImGui.endDisabled();
-
-        // 3. Timeline Control
+    private void timeLineControl() {
         long currentMs = reader.getCurrentPosition() / 1000;
         long durationMs = reader.getDuration();
 
@@ -81,27 +77,45 @@ public class PureVideoGrabber implements UIModule<Frame> {
             try {
                 boolean isPlaying = this.isPlaying;
                 reader.seek((long) (progress[0] * durationMs));
-                if (isPlaying)
-                    play();
+                if (isPlaying) play();
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.warning(Arrays.toString(e.getStackTrace()));
             }
         }
         ImGui.sameLine();
         ImGui.text(Utils.formatTimestamp(durationMs));
 
         ImGui.setCursorPosX(ImGui.getWindowSizeX() * 0.4f);
-        // 4. Playback Controls
-        if (ImGui.button(!isPlaying ? "Play" : "Pause")) {
-            if (!isPlaying) play();
-            else pause();
-        }
-        ImGui.sameLine();
-        if (ImGui.button("Stop")) {
-            stop();
-        }
+    }
 
-        ImGui.end();
+    private void videoGrabberDialog() {
+        if (ImGui.button(LocalizationManager.tr("videograbber.videosource.open"))) {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle(LocalizationManager.tr("videograbber.videosource.select"));
+            int result = fileChooser.showOpenDialog(null);
+            if (result == JFileChooser.APPROVE_OPTION) {
+                videoFilePath = fileChooser.getSelectedFile().getAbsolutePath();
+                loadVideoFile();
+            }
+        }
+    }
+
+    private void videoInformation() {
+        ImGui.sameLine();
+        ImGui.text(LocalizationManager.tr("status.status") + (reader.isRunning() ? (reader.isPaused() ? LocalizationManager.tr("status.paused") : LocalizationManager.tr("status.playing")) : LocalizationManager.tr("status.stopped")));
+    }
+
+    private void videoParameters() {
+        ImGui.newLine();
+        ImGui.pushItemWidth(100);
+        ImGui.beginDisabled(reader.isRunning());
+        ImGui.inputInt(LocalizationManager.tr("video.attr.width"), width, 20, 100);
+        ImGui.sameLine();
+        ImGui.inputInt(LocalizationManager.tr("video.attr.height"), height, 10, 100);
+        ImGui.sameLine();
+        ImGui.inputInt(LocalizationManager.tr("video.attr.framerate"), framerate);
+        ImGui.popItemWidth();
+        ImGui.endDisabled();
     }
 
     private void play() {
@@ -127,7 +141,7 @@ public class PureVideoGrabber implements UIModule<Frame> {
             }
             return reader.grab();
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.warning(Arrays.toString(e.getStackTrace()));
             stop();
         } finally {
             lock.unlock();
@@ -146,7 +160,7 @@ public class PureVideoGrabber implements UIModule<Frame> {
             reader.start();
             isPlaying = false;
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.warning(Arrays.toString(e.getStackTrace()));
         }
     }
 
@@ -162,10 +176,8 @@ public class PureVideoGrabber implements UIModule<Frame> {
         return isOp.get();
     }
 
-
     public void pause() {
         isPlaying = false;
-
     }
 
     public void stop() {
@@ -173,7 +185,7 @@ public class PureVideoGrabber implements UIModule<Frame> {
         try {
             reader.stop();
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.warning(Arrays.toString(e.getStackTrace()));
         }
     }
 
