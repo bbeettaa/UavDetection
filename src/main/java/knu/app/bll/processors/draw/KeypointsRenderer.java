@@ -55,10 +55,9 @@ public class KeypointsRenderer implements DetectionRenderer {
                 Point textOrg = new Point(rects.get(i).x(), Math.max(rects.get(i).y(), textSize.height() + baseLine[0] + 2));
                 rectangle(frame, new Point(textOrg.x(), textOrg.y() - textSize.height() - baseLine[0]),
                         new Point(textOrg.x() + textSize.width(), textOrg.y() + baseLine[0]), new Scalar(0, 0, 0, 0),
-                        FILLED, lineType, 0);
+                        8, lineType, 0);
                 putText(frame, text, textOrg, FONT_HERSHEY_SIMPLEX, 0.5,
-                        color, thick, lineType, false
-                );
+                        color, thick, lineType, false );
             }
         }
     }

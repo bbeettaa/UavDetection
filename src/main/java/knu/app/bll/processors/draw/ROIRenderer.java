@@ -42,27 +42,47 @@ public class ROIRenderer implements DetectionRenderer {
     }
 
     @Override
-    public void render(Mat frame, List<Rect> rects, List<Double> scores, boolean renderScores, Scalar color, int thick, int lineType) {
+    public void render(Mat frame, List<Rect> rects, List<Double> scores,
+                       boolean renderScores, Scalar color, int thick, int lineType) {
         if (rects == null || rects.isEmpty()) return;
+
+        if (renderScores && (scores == null || scores.size() < rects.size())) {
+            throw new IllegalArgumentException("Scores list is invalid when renderScores is true");
+        }
 
         for (int i = 0; i < rects.size(); i++) {
             Rect r = rects.get(i);
             rectangle(frame, r, color, thick, lineType, 0);
 
-            if (renderScores && i < scores.size()) {
-                String text = String.format("%.2f", scores.get(i));
+            if (renderScores) {
+                double score = scores.get(i);
+                String text = String.format("%.2f", score);
                 int[] baseLine = new int[1];
-                var textSize = getTextSize(text, FONT_HERSHEY_SIMPLEX, 0.4, thick, baseLine);
+                Size textSize = getTextSize(text, FONT_HERSHEY_SIMPLEX, 0.4, thick, baseLine);
+
                 Point textOrg = new Point(r.x(), Math.max(r.y(), textSize.height() + baseLine[0] + 2));
-                rectangle(frame, new Point(textOrg.x(), textOrg.y() - textSize.height() - baseLine[0]),
-                        new Point(textOrg.x() + textSize.width(), textOrg.y() + baseLine[0]), new Scalar(0, 0, 0, 0),
-                        FILLED, lineType, 0);
-                putText(frame, text, textOrg, FONT_HERSHEY_SIMPLEX, 0.5,
-                        color, thick, lineType, false
+
+                rectangle(frame,
+                        new Point(textOrg.x(), textOrg.y() - textSize.height() - baseLine[0]),
+                        new Point(textOrg.x() + textSize.width(), textOrg.y() + baseLine[0]),
+                        new Scalar(0, 0, 0, 0),
+                        CV_FILLED,
+                        lineType,
+                        0
+                );
+                putText(
+                        frame,
+                        text,
+                        textOrg,
+                        FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        color,
+                        thick,
+                        lineType,
+                        false
                 );
             }
         }
-
     }
 
     public void setScalar(Scalar scalar) {
