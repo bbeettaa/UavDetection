@@ -1,6 +1,6 @@
 package knu.app.samples;
 
-import knu.app.bll.processors.detection.DetectionResult;
+import knu.app.bll.utils.processors.DetectionResult;
 import knu.app.bll.processors.detection.ORBObjectDetector;
 import knu.app.bll.processors.detection.ObjectDetector;
 import knu.app.bll.processors.draw.DetectionRenderer;

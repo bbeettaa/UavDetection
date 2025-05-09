@@ -1,10 +1,13 @@
 package knu.app.samples;
 
-import knu.app.bll.processors.detection.DetectionResult;
+import knu.app.bll.utils.processors.DetectionResult;
 import knu.app.bll.processors.detection.HogSvmDetector;
 import knu.app.bll.processors.draw.DetectionRenderer;
 import knu.app.bll.processors.draw.ROIRenderer;
-import knu.app.bll.utils.hog.*;
+import knu.app.bll.utils.processors.hog.CpuHogTrainerFullSizedNegativeSample;
+import knu.app.bll.utils.processors.hog.HogSvmDetectorConfig;
+import knu.app.bll.utils.processors.hog.HogSvmUtils;
+import knu.app.bll.utils.processors.hog.HogTrainer;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_objdetect.HOGDescriptor;
 

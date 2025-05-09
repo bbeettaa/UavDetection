@@ -1,4 +1,4 @@
-package knu.app.bll.processors.detection;
+package knu.app.bll.utils.processors;
 
 import org.bytedeco.opencv.opencv_core.Point2f;
 import org.bytedeco.opencv.opencv_core.Rect;

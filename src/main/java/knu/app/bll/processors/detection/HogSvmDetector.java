@@ -1,7 +1,8 @@
 package knu.app.bll.processors.detection;
 
 
-import knu.app.bll.utils.hog.HogSvmDetectorConfig;
+import knu.app.bll.utils.processors.DetectionResult;
+import knu.app.bll.utils.processors.hog.HogSvmDetectorConfig;
 import org.bytedeco.javacpp.DoublePointer;
 import org.bytedeco.javacpp.FloatPointer;
 import org.bytedeco.javacpp.IntPointer;

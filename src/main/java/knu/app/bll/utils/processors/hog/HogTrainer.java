@@ -1,4 +1,4 @@
-package knu.app.bll.utils.hog;
+package knu.app.bll.utils.processors.hog;
 
 import org.bytedeco.javacpp.FloatPointer;
 import org.bytedeco.javacpp.indexer.DoubleIndexer;
@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.IntStream;
 
-import static knu.app.bll.utils.hog.HogSvmUtils.*;
+import static knu.app.bll.utils.processors.hog.HogSvmUtils.*;
 import static org.bytedeco.opencv.global.opencv_core.CV_32S;
 import static org.bytedeco.opencv.global.opencv_imgcodecs.IMREAD_GRAYSCALE;
 import static org.bytedeco.opencv.global.opencv_imgcodecs.imread;

@@ -1,6 +1,7 @@
 package knu.app.bll.processors.detection;
 
 import knu.app.bll.utils.Utils;
+import knu.app.bll.utils.processors.DetectionResult;
 import org.bytedeco.opencv.opencv_core.*;
 import org.bytedeco.opencv.opencv_features2d.BFMatcher;
 import org.bytedeco.opencv.opencv_features2d.ORB;

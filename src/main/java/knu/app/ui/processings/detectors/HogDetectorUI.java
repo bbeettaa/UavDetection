@@ -1,8 +1,7 @@
 package knu.app.ui.processings.detectors;
 
 
-import imgui.type.ImFloat;
-import knu.app.bll.processors.detection.DetectionResult;
+import knu.app.bll.utils.processors.DetectionResult;
 import knu.app.bll.processors.detection.HogSvmDetector;
 import knu.app.bll.processors.detection.ObjectDetector;
 import knu.app.bll.utils.LocalizationManager;

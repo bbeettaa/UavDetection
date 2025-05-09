@@ -3,7 +3,7 @@ package knu.app.ui.processings.detectors;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
-import knu.app.bll.processors.detection.DetectionResult;
+import knu.app.bll.utils.processors.DetectionResult;
 import knu.app.bll.processors.detection.SURFObjectDetector;
 import knu.app.bll.utils.LocalizationManager;
 import org.bytedeco.opencv.opencv_core.Mat;

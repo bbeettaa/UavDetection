@@ -1,55 +1,50 @@
-package knu.app.bll.utils.hog;
+package knu.app.bll.utils.processors.hog;
+
+import org.bytedeco.opencv.global.opencv_core;
+import org.bytedeco.opencv.opencv_core.*;
+import org.bytedeco.opencv.opencv_objdetect.HOGDescriptor;
+
+import java.util.List;
+import java.util.logging.Logger;
 
 import org.bytedeco.javacpp.FloatPointer;
 import org.bytedeco.javacpp.indexer.FloatIndexer;
-import org.bytedeco.opencv.global.opencv_core;
-import org.bytedeco.opencv.opencv_core.Mat;
-import org.bytedeco.opencv.opencv_objdetect.HOGDescriptor;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.logging.Logger;
+import static knu.app.bll.utils.processors.hog.HogSvmUtils.*;
 
-import static knu.app.bll.utils.hog.HogSvmUtils.*;
 import static org.bytedeco.opencv.global.opencv_core.CV_32F;
-import static org.bytedeco.opencv.global.opencv_imgcodecs.IMREAD_GRAYSCALE;
-import static org.bytedeco.opencv.global.opencv_imgcodecs.imread;
 
-public class HogCpuTrainer extends HogTrainer {
-    private static final Logger logger = Logger.getLogger(HogCpuTrainer.class.getName());
+public class CpuHogTrainerFullSizedNegativeSample extends HogTrainer {
+    private static final Logger logger = Logger.getLogger(CpuHogTrainerFullSizedNegativeSample.class.getName());
 
 
     private final HOGDescriptor hog;
+    private final int negStep;
 
-    public HogCpuTrainer() {
-        this(HogSvmUtils.createHog());
+    public CpuHogTrainerFullSizedNegativeSample() {
+        this(HogSvmUtils.createHog(), 1);
         opencv_core.setUseOpenCL(true);
+
+        System.out.println("OpenCL available: " + opencv_core.haveOpenCL());
+        System.out.println("OpenCL enable: " + opencv_core.useOpenCL());
     }
 
-    public HogCpuTrainer(HOGDescriptor hog) {
+    public CpuHogTrainerFullSizedNegativeSample(HOGDescriptor hog, int negativePatchesStep) {
         this.hog = hog;
+        this.negStep = negativePatchesStep;
         opencv_core.setUseOpenCL(true);
     }
 
-
-    /**
-     * Training Hog on positives and negatives samples.
-     *
-     * @param posDir path to positives samples dir
-     * @param negDir path to negative samples dir
-     */
     @Override
     public HOGDescriptor train(String posDir, String negDir) {
         logger.info("Training Process started");
-
         logger.info("\tLoading positive samples...");
         List<Mat> positives = loadAndPreparePositives(posDir);
         logger.info("\tLoading done");
+        List<Mat> negatives;
 
-        logger.info("\tLoading negative patches...");
-        List<Mat> negatives = loadNegativePatches(negDir);
+        logger.info("\tLoading negative samples...");
+        negatives = generateNegativePatches(negDir, negStep);
         logger.info("\tLoading done");
 
         logger.info("\tPreparing samples...");
@@ -72,24 +67,6 @@ public class HogCpuTrainer extends HogTrainer {
         return hog;
     }
 
-    private List<Mat> loadNegativePatches(String dirPath) {
-        List<Mat> patches = new ArrayList<>();
-        File dir = new File(dirPath);
-        for (File file : Objects.requireNonNull(dir.listFiles())) {
-            Mat img = imread(file.getAbsolutePath(), IMREAD_GRAYSCALE);
-            if (img.empty()) continue;
-
-            if (img.cols() != WIN_SIZE.width() || img.rows() != WIN_SIZE.height()) {
-                logger.warning("Skipping image with incorrect size: " + file.getName());
-                img.release();
-                continue;
-            }
-
-            patches.add(preprocessImage(img));
-            img.release();
-        }
-        return patches;
-    }
 
     private Mat prepareSamples(List<Mat> positives, List<Mat> negatives) {
         int descriptorSize = (int) hog.getDescriptorSize();
@@ -109,14 +86,12 @@ public class HogCpuTrainer extends HogTrainer {
 
     private void computeHogDescriptor(Mat img, FloatIndexer indexer, int row) {
         FloatPointer descriptor = new FloatPointer(hog.getDescriptorSize());
-        hog.compute(img, descriptor, BLOCK_STRIDE, HOG_PADDING, new org.bytedeco.opencv.opencv_core.PointVector());
+        hog.compute(img, descriptor, BLOCK_STRIDE, HOG_PADDING, new PointVector());
 
         for (int col = 0; col < descriptor.limit(); col++) {
             indexer.put(row, col, descriptor.get(col));
         }
         descriptor.close();
     }
+
 }
-
-
-
