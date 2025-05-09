@@ -50,13 +50,13 @@ public class HogSvmDetectorConfig {
         return new HogSvmDetectorConfig(
                 2.0,
                 0.0,
-                1.05,
+                1.1,
                 new Size(8, 8),
                 new Size(32, 32),
                 false,
-                0.0,
+                5.0,
                 0.0f,
-                1.0f,
+                0.4f,
                 5,
                 0.5);
     }

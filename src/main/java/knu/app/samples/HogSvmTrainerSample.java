@@ -29,10 +29,10 @@ public class HogSvmTrainerSample {
                 "/mnt/lindisk/datasets/drone.vis/hogSamples/samples/HELICOPTER_004485.png",
                 "/mnt/lindisk/datasets/drone.vis/hogSamples/samples/0000352_02353_d_0000551.jpg",
         };
-        String modelFile = "src/main/resources/HOGDescriptorEsp3";
+        String modelFile = "src/main/resources/HOGDescriptorEsp2";
 
-//        HOGDescriptor hog = HogSvmUtils.loadDescriptorFromFile(modelFile);
-        HOGDescriptor hog = trainCPUDescriptor(modelFile, positivePath, negativePath);
+        HOGDescriptor hog = HogSvmUtils.loadDescriptorFromFile(modelFile);
+//        HOGDescriptor hog = trainCPUDescriptor(modelFile, positivePath, negativePath);
         detect(hog, testPath);
     }
 
@@ -43,8 +43,6 @@ public class HogSvmTrainerSample {
         HogSvmUtils.saveDescriptorToFile(modelFile, hog);
         return hog;
     }
-
-
 
     private static void detect(HOGDescriptor hog, String[] testPath) {
         HogSvmDetector detector = new HogSvmDetector(hog, HogSvmDetectorConfig.withTestConfig());

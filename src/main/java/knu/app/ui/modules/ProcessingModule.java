@@ -48,19 +48,18 @@ public class ProcessingModule implements UIModule<Mat> {
     private final ImInt selectedTrackerRendererIndex = new ImInt(1);
     private String[] rendererNames;
 
-    public ProcessingModule(Mat templateImg) {
-        init(templateImg);
+    public ProcessingModule(Mat templateImg, String hogDescriptorFile) {
+        init(templateImg, hogDescriptorFile);
     }
 
     public static final String PROCESSOR_ID = LocalizationManager.tr("menu.processor.name");
 
-    public void init(Mat templateImg) {
-        String file = "src/main/resources/HOGDescriptorEsp1";
+    public void init(Mat templateImg, String hogDescriptorFile) {
 //        detectors.add(new FMDDetectorUI(new FarnebackMotionDetector()));
         detectors.add(new ORBDetectorUI(new ORBObjectDetector(templateImg)));
         detectors.add(new SIFTDetectorUI(new SIFTObjectDetector(templateImg)));
         detectors.add(new SURFDetectorUI(new SURFObjectDetector(templateImg)));
-        detectors.add(new HogDetectorUI(new HogSvmDetector(new HogSvmUtils().loadDescriptorFromFile(file), HogSvmDetectorConfig.withTestConfig())));
+        detectors.add(new HogDetectorUI(new HogSvmDetector(HogSvmUtils.loadDescriptorFromFile(hogDescriptorFile), HogSvmDetectorConfig.withTestConfig())));
 
         trackers.add(new KalmanTrackerUI(new ObjectTrackerWithKalman()));
         trackers.add(new LucasKanadeTrackerUI(new OpticalFlowTracker()));

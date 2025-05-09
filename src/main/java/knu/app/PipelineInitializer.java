@@ -34,16 +34,16 @@ public class PipelineInitializer {
     private final OpenCVFrameConverter.ToMat converter = new OpenCVFrameConverter.ToMat();
     private final List<UIModule<?>> uiModules = new ArrayList<>();
 
-    public PipelineInitializer() {
+    public PipelineInitializer(String descriptorFile, String hogDescriptorFile) {
         int th1 = 4;
         int th2 = Runtime.getRuntime().availableProcessors() - th1;
         executor = Executors.newFixedThreadPool(th1);
         opencv_core.setNumThreads(th2);
 
-        initModules();
+        initModules(descriptorFile, hogDescriptorFile);
     }
 
-    private void initModules() {
+    private void initModules(String descriptorFile, String hogDescriptorFile) {
         Bufferable<Mat> frameReaderBuffer = new OverwritingQueueBlockedFrameBuffer<>(4);
         Bufferable<Mat> processingBuffer = new OverwritingQueueBlockedFrameBuffer<>(4);
         Bufferable<Mat> frameWriterBuffer = new OverwritingQueueBlockedFrameBuffer<>(4);
@@ -52,7 +52,7 @@ public class PipelineInitializer {
         PureVideoGrabber videoGrabber = new PureVideoGrabber(videoSource);
         VideoRenderer videoRenderer = new VideoRenderer();
 
-        Mat image = imread("/home/bedu/Документы/drone.jpg", IMREAD_GRAYSCALE);
+        Mat image = imread(descriptorFile, IMREAD_GRAYSCALE);
 
         UIModule<Mat> preprocessingUi = new PreprocessorUiModule(
                 new GrayColorPreprocessor(),
@@ -61,7 +61,7 @@ public class PipelineInitializer {
                 new FrameSizerPreprocessor(1920, 1080)
         );
 
-        UIModule<Mat> processingUi = new ProcessingModule(image);
+        UIModule<Mat> processingUi = new ProcessingModule(image, hogDescriptorFile);
         StatisticDisplayUI stat = new StatisticDisplayUI();
 
         // Main menu
