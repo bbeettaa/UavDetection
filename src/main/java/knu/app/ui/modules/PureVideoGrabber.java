@@ -11,8 +11,6 @@ import org.bytedeco.javacv.Frame;
 import javax.swing.*;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
 public class PureVideoGrabber implements UIModule<Frame> {
@@ -28,8 +26,8 @@ public class PureVideoGrabber implements UIModule<Frame> {
 
     public static final String GRABBER_ID = "Video Grabber Controls";
 
-    private final ReentrantLock lock = new ReentrantLock();
-    private final Condition pauseLock = lock.newCondition();
+//    private final ReentrantLock lock = new ReentrantLock();
+//    private final Condition pauseLock = lock.newCondition();
 
     public PureVideoGrabber(PlaybackControlVideoSource reader) {
         this.reader = reader;
@@ -65,7 +63,7 @@ public class PureVideoGrabber implements UIModule<Frame> {
     }
 
     private void timeLineControl() {
-        long currentMs = reader.getCurrentPosition() / 1000;
+        long currentMs = reader.getCurrentPosition();
         long durationMs = reader.getDuration();
 
         ImGui.newLine();
@@ -102,7 +100,11 @@ public class PureVideoGrabber implements UIModule<Frame> {
 
     private void videoInformation() {
         ImGui.sameLine();
-        ImGui.text(LocalizationManager.tr("status.status") + (reader.isRunning() ? (reader.isPaused() ? LocalizationManager.tr("status.paused") : LocalizationManager.tr("status.playing")) : LocalizationManager.tr("status.stopped")));
+        ImGui.text(
+                LocalizationManager.tr("status.status") +
+                        (reader.isRunning() ?
+                                (reader.isPaused() ? LocalizationManager.tr("status.paused") : LocalizationManager.tr("status.playing")) :
+                                LocalizationManager.tr("status.stopped")));
     }
 
     private void videoParameters() {
@@ -120,31 +122,36 @@ public class PureVideoGrabber implements UIModule<Frame> {
 
     private void play() {
         if (videoFilePath == null) return;
-        lock.lock();
+//        lock.lock();
         try {
             if (!isPlaying) {
                 isPlaying = true;
-                pauseLock.signalAll();
+//                pauseLock.signalAll();
             }
         } finally {
-            lock.unlock();
+//            lock.unlock();
         }
 
     }
 
+    Frame l;
     @Override
     public Frame execute(Frame o) {
-        lock.lock();
+//        lock.lock();
         try {
             while (!isPlaying) {
-                pauseLock.await();
+//                pauseLock.await();
+                Thread.sleep(500);
+                return l;
             }
-            return reader.grab();
+//            Frame l =  reader.grab();
+            l = reader.grab();
+            return l;
         } catch (Exception e) {
             logger.warning(Arrays.toString(e.getStackTrace()));
             stop();
         } finally {
-            lock.unlock();
+//            lock.unlock();
         }
 
         return null;
@@ -187,6 +194,10 @@ public class PureVideoGrabber implements UIModule<Frame> {
         } catch (IOException e) {
             logger.warning(Arrays.toString(e.getStackTrace()));
         }
+    }
+
+    public long getCurrentFrameIndex(){
+        return reader.getFrameNumber();
     }
 
 }

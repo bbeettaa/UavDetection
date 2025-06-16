@@ -1,4 +1,4 @@
-package knu.app;
+package knu.app.bll.utils;
 
 import imgui.ImGui;
 import imgui.ImGuiIO;
@@ -50,8 +50,10 @@ public class VideoProcessingUI {
         ImGuiIO io = ImGui.getIO();
         io.setIniFilename(null);
         io.addConfigFlags(ImGuiConfigFlags.DockingEnable);
+        io.setWantCaptureKeyboard(true);
 
-        imGuiGlfw.init(window, false);
+
+        imGuiGlfw.init(window, true);
         imGuiGl3.init("#version 330 core");
     }
 

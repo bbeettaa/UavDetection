@@ -24,7 +24,6 @@ public class DockSpaceUIModule implements UIModule<Object> {
         this.bottomWindowId = bottomWindowId;
     }
 
-
     @Override
     public String getName() {
         return "DockSpace";
@@ -64,7 +63,7 @@ public class DockSpaceUIModule implements UIModule<Object> {
             ImInt leftNode  = new ImInt();
             ImInt rightNode = new ImInt();
 
-            var leftID =  imgui.internal.ImGui.dockBuilderSplitNode(
+            int leftID =  imgui.internal.ImGui.dockBuilderSplitNode(
                     mainDockID,
                     ImGuiDir.Left,
                     0.25f,
@@ -74,7 +73,7 @@ public class DockSpaceUIModule implements UIModule<Object> {
 
             ImInt bottomNode = new ImInt();
             ImInt topNode    = new ImInt();
-            var bottomID =  imgui.internal.ImGui.dockBuilderSplitNode(
+            int bottomID =  imgui.internal.ImGui.dockBuilderSplitNode(
                     rightNode.get(),
                     ImGuiDir.Down,
                     0.25f,

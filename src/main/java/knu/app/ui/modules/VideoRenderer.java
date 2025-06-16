@@ -8,7 +8,7 @@ import imgui.type.ImFloat;
 import knu.app.bll.utils.textures.FastOpenGLTexture;
 import knu.app.bll.utils.textures.UiTexturable;
 import knu.app.bll.buffers.BufferElement;
-import knu.app.bll.buffers.Bufferable;
+import knu.app.bll.buffers.BufferableQueue;
 import knu.app.bll.buffers.OverwritingQueueFrameBuffer;
 import knu.app.bll.utils.LocalizationManager;
 import org.bytedeco.javacv.Frame;
@@ -27,7 +27,7 @@ public class VideoRenderer implements UIModule<Frame> {
     private final ImFloat aspectY;
     private final ImBoolean isOp;
 
-    private final Bufferable<BufferedImage> imageBuffer;
+    private final BufferableQueue<BufferedImage> imageBuffer;
     private volatile boolean isRendering = false;
 
 
@@ -98,7 +98,7 @@ public static final String VEDIO_OUTPUT_ID = "Video Output";
 
                 if (keepCentered.get()) {
                     ImGui.setCursorPosX((contentSize.x - displayWidth) * 0.5f);
-                    ImGui.setCursorPosY((contentSize.y - displayHeight) * 0.5f);
+                    ImGui.setCursorPosY((contentSize.y - displayHeight) * 0.5f + 18);
                 }
                 texture.renderImGui(displayWidth, displayHeight);
             } finally {

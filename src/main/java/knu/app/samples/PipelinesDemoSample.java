@@ -1,7 +1,7 @@
 package knu.app.samples;
 
 import knu.app.bll.buffers.BufferElement;
-import knu.app.bll.buffers.Bufferable;
+import knu.app.bll.buffers.BufferableQueue;
 import knu.app.bll.buffers.OverwritingQueueBlockedFrameBuffer;
 import knu.app.bll.postprocessors.FPSOverlayPostprocessorValue;
 import knu.app.bll.postprocessors.FramePostprocessorValue;
@@ -31,8 +31,8 @@ public class PipelinesDemoSample {
         VideoSource reader = new PlaybackFFmpegRawVideoSource(inputFile, 60, 3);
         OpenCVFrameConverter.ToMat converter = new OpenCVFrameConverter.ToMat();
 
-        Bufferable<Mat> frameReaderBuffer = new OverwritingQueueBlockedFrameBuffer<>(20);
-        Bufferable<Mat> frameWriterBuffer = new OverwritingQueueBlockedFrameBuffer<>( 20);
+        BufferableQueue<Mat> frameReaderBuffer = new OverwritingQueueBlockedFrameBuffer<>(20);
+        BufferableQueue<Mat> frameWriterBuffer = new OverwritingQueueBlockedFrameBuffer<>( 20);
 
         int availableProcessors = Runtime.getRuntime().availableProcessors();
         ExecutorService executorService = Executors.newFixedThreadPool(availableProcessors);
@@ -43,7 +43,7 @@ public class PipelinesDemoSample {
 
     }
 
-    private static Runnable createFrameReaderThread(VideoSource reader, FramePostprocessorValue<Long> fpsPostprocessor, OpenCVFrameConverter.ToMat converter, Bufferable<Mat> frameReaderBuffer) {
+    private static Runnable createFrameReaderThread(VideoSource reader, FramePostprocessorValue<Long> fpsPostprocessor, OpenCVFrameConverter.ToMat converter, BufferableQueue<Mat> frameReaderBuffer) {
         return () -> {
             try {
                 reader.start();
@@ -62,7 +62,7 @@ public class PipelinesDemoSample {
         };
     }
 
-    private static Runnable createFrameWriteThread(Bufferable<Mat> frameWriterBuffer, FramePostprocessorValue<Long> fpsPostprocessor, OpenCVFrameConverter.ToMat converter) {
+    private static Runnable createFrameWriteThread(BufferableQueue<Mat> frameWriterBuffer, FramePostprocessorValue<Long> fpsPostprocessor, OpenCVFrameConverter.ToMat converter) {
         return () -> {
 
         FrameDisplayer displayer = new CanvasDisplayer("Canny + FPS");
@@ -80,7 +80,7 @@ public class PipelinesDemoSample {
         };
     }
 
-    private static Runnable createPrerocessingThread(Bufferable<Mat> frameReaderBuffer, Bufferable<Mat> frameWriterBuffer) {
+    private static Runnable createPrerocessingThread(BufferableQueue<Mat> frameReaderBuffer, BufferableQueue<Mat> frameWriterBuffer) {
         return () -> {
             FramePreprocessor kmean = new KMeansPreprocessor(3);
 
