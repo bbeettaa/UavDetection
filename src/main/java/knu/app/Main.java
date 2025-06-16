@@ -10,12 +10,12 @@ import static org.bytedeco.opencv.global.opencv_imgcodecs.imread;
 
 public class Main {
     public static void main(String[] args) {
-//        String singleDescriptorFile = "/home/bedu/Документы/drone.jpg";
-        String singleDescriptorFile = "/mnt/lindisk/datasets/drone.vis/hogSamples/bss-holland-vector.jpg";
+//        String singleDescriptorFile = "src/main/resources/drone.jpg";
+        String singleDescriptorFile = "src/main/resources/bss-holland-vector.jpg";
         Mat singleDescriptor = imread(singleDescriptorFile, IMREAD_GRAYSCALE);
 
         HogSvmDetectorConfig hogSvmDetectorConfig = HogSvmDetectorConfig.withDefaultConfig();
-        String hogDescriptor = "src/main/resources/HOGDescriptorEsp2";
+        String hogDescriptor = "src/main/resources/HOGDescriptorEsp.Big";
 
         PipelineInitializer initializer = new PipelineInitializer(1, singleDescriptor, hogDescriptor, hogSvmDetectorConfig);
         VideoProcessingUI ui = new VideoProcessingUI(initializer.getUiModules());

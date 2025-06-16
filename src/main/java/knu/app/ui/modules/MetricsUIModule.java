@@ -11,10 +11,10 @@ import java.util.List;
 
 public class MetricsUIModule implements UIModule<MetricsUIModule.FrameRecord> {
     private final ImBoolean isOp = new ImBoolean(false);
-    private MetricsEvaluator evaluator;
+    private final MetricsEvaluator evaluator;
     String loadedFile;
 
-    public class FrameRecord {
+    public static class FrameRecord {
         long timeStamp;
         List<Rect> roi;
     }

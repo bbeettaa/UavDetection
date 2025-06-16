@@ -16,7 +16,7 @@ import java.util.stream.IntStream;
 
 public class MetricsEvaluator {
     private Map<Long, List<Rect>> groundTruthByFrame;
-    private double iouThreshold;
+    private final double iouThreshold;
     private EvaluationMetrics currentMetrics;
 
     public MetricsEvaluator(String jsonPath, double iouThreshold) {
