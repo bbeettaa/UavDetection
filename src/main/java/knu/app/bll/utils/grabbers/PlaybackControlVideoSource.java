@@ -1,5 +1,6 @@
 package knu.app.bll.utils.grabbers;
 
+import knu.app.bll.events.EventModelListener;
 import org.bytedeco.javacv.Frame;
 
 import java.io.IOException;
@@ -22,6 +23,8 @@ public interface PlaybackControlVideoSource {
     long getCurrentPosition();
 
     long getDuration();
+
+    long getFrameNumber();
 
     Frame grab() throws Exception;
 
@@ -47,11 +50,11 @@ public interface PlaybackControlVideoSource {
 
     int getFramerate();
 
-
     boolean isRunning();
 
     boolean isPaused();
 
+    void addListener(EventModelListener listener);
 
 }
 

@@ -1,10 +1,14 @@
 package knu.app.bll.utils.grabbers;
 
+import knu.app.bll.events.EventModelListener;
 import knu.app.bll.utils.Utils;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.Java2DFrameConverter;
+import org.bytedeco.javacv.OpenCVFrameConverter;
+import org.bytedeco.opencv.opencv_core.Mat;
 
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
 import java.awt.image.WritableRaster;
 import java.io.*;
 import java.util.concurrent.TimeUnit;
@@ -14,8 +18,11 @@ import java.util.logging.Logger;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.bytedeco.opencv.global.opencv_core.CV_8UC3;
+
 public class PlaybackFFmpegRawVideoSource implements PlaybackControlVideoSource, VideoSource {
     private static final Logger logger = Logger.getLogger(PlaybackFFmpegRawVideoSource.class.getName());
+    private final List<EventModelListener> listeners = new ArrayList<>();
     private String inputSource;
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
     private final AtomicBoolean isPaused = new AtomicBoolean(false);
@@ -34,7 +41,9 @@ public class PlaybackFFmpegRawVideoSource implements PlaybackControlVideoSource,
     private long seekTime = 0;
     private float playbackSpeed = 1.0f;
     private long duration = 0;
-    private int timestampIndex=0;
+    private BufferedImage img;
+
+    OpenCVFrameConverter.ToMat matConv = new OpenCVFrameConverter.ToMat();
 
     private float fps = 0;
     private long out_time_ms = 0;
@@ -89,8 +98,13 @@ public class PlaybackFFmpegRawVideoSource implements PlaybackControlVideoSource,
     }
 
     @Override
-    public Frame grab() throws Exception {
-        return grabRowVideo();
+    public Frame grab() {
+        try{
+            return grabRowVideo();
+        } catch (Exception e){
+            logger.warning(e.getMessage());
+        }
+        return null;
     }
 
     public Frame grabRowVideo() throws Exception {
@@ -100,11 +114,10 @@ public class PlaybackFFmpegRawVideoSource implements PlaybackControlVideoSource,
             if (bytesRead == -1) return null;
             offset += bytesRead;
         }
-        BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
+        img = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
         WritableRaster raster = img.getRaster();
         raster.setDataElements(0, 0, width, height, buffer);
 
-        timestampIndex++;
         return converter.convert(img);
     }
 
@@ -123,6 +136,20 @@ public class PlaybackFFmpegRawVideoSource implements PlaybackControlVideoSource,
     }
 
     private void startRawVideoProcess() throws IOException {
+        List<String> command = getFfmpegCommand();
+
+        ProcessBuilder pb = new ProcessBuilder(command);
+        pb.redirectError(ProcessBuilder.Redirect.PIPE);
+        ffmpeg = pb.start();
+        videoStream = ffmpeg.getInputStream();
+        dataInputStream = new DataInputStream(new BufferedInputStream(videoStream));
+        errorReader = new BufferedReader(new InputStreamReader(ffmpeg.getErrorStream()));
+        isRunning.set(true);
+        logger.info("FFmpeg process started");
+        startProgressParserThread();
+    }
+
+    private List<String> getFfmpegCommand() {
         List<String> command = new ArrayList<>();
         command.add("ffmpeg");
         command.add("-re");
@@ -155,20 +182,10 @@ public class PlaybackFFmpegRawVideoSource implements PlaybackControlVideoSource,
             command.add("setpts=" + (1.0f / playbackSpeed) + "*PTS");
         }
         command.add("-progress");
-        command.add("pipe:2"); // write progress in stderr
+        command.add("pipe:2");
         command.add("-nostats");
         command.add("-");
-
-        ProcessBuilder pb = new ProcessBuilder(command);
-        pb.redirectError(ProcessBuilder.Redirect.PIPE);
-        ffmpeg = pb.start();
-        videoStream = ffmpeg.getInputStream();
-        dataInputStream = new DataInputStream(new BufferedInputStream(videoStream));
-        errorReader = new BufferedReader(new InputStreamReader(ffmpeg.getErrorStream()));
-        isRunning.set(true);
-        logger.info("FFmpeg process started");
-//        ptsTimestamps = extractFrameTimestamps(inputSource);
-        startProgressParserThread();
+        return command;
     }
 
     private void startProgressParserThread() {
@@ -247,6 +264,7 @@ public class PlaybackFFmpegRawVideoSource implements PlaybackControlVideoSource,
         seekTime = 0;
         duration = 0;
         logger.info("FFmpeg process stopped");
+        notifyListeners();
     }
 
     @Override
@@ -254,7 +272,6 @@ public class PlaybackFFmpegRawVideoSource implements PlaybackControlVideoSource,
         if (isRunning.get()) {
             stop();
             this.seekTime = timestamp;
-            this.timestampIndex=Integer.parseInt(timestamp+"");
             start();
         }
     }
@@ -296,7 +313,7 @@ public class PlaybackFFmpegRawVideoSource implements PlaybackControlVideoSource,
 
     @Override
     public long getCurrentPosition() {
-        return out_time_ms;
+        return out_time_ms / 1000;
     }
 
     @Override
@@ -305,6 +322,11 @@ public class PlaybackFFmpegRawVideoSource implements PlaybackControlVideoSource,
         if (duration == 0) {
             fetchDuration();
         }
+        return duration;
+    }
+
+    @Override
+    public long getFrameNumber() {
         return duration;
     }
 
@@ -377,6 +399,16 @@ public class PlaybackFFmpegRawVideoSource implements PlaybackControlVideoSource,
     @Override
     public boolean isPaused() {
         return isPaused.get();
+    }
+
+    @Override
+    public void addListener(EventModelListener listener) {
+            listeners.add(listener);
+    }
+
+    private void notifyListeners(){
+        for (EventModelListener l : listeners)
+            l.onEvent();
     }
 
 
