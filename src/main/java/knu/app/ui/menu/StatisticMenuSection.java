@@ -5,9 +5,9 @@ import knu.app.bll.utils.LocalizationManager;
 import knu.app.ui.modules.UIModule;
 
 public class StatisticMenuSection implements MenuSection {
-    private final UIModule<Void> ui;
+    private final UIModule<?> ui;
 
-    public StatisticMenuSection(UIModule<Void> ui) {
+    public StatisticMenuSection(UIModule<?> ui) {
         this.ui = ui;
     }
 

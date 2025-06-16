@@ -4,23 +4,23 @@ import imgui.ImGui;
 import imgui.type.ImBoolean;
 import imgui.type.ImFloat;
 import imgui.type.ImInt;
-import knu.app.bll.preprocessors.BlurPreprocessor;
-import knu.app.bll.preprocessors.CannyPreprocessor;
-import knu.app.bll.preprocessors.FrameSizerPreprocessor;
-import knu.app.bll.preprocessors.GrayColorPreprocessor;
+import knu.app.bll.preprocessors.*;
 import knu.app.bll.utils.LocalizationManager;
-import org.bytedeco.opencv.opencv_core.Mat;
+import knu.app.bll.utils.MatWrapper;
 import org.bytedeco.opencv.opencv_core.Size;
 
 import java.util.Arrays;
 
-public class PreprocessorUiModule implements UIModule<Mat> {
+public class PreprocessorUiModule implements UIModule<MatWrapper> {
     private final ImBoolean isOp = new ImBoolean(false);
 
     private final ImBoolean grayscalef = new ImBoolean(false);
     private final ImBoolean blurf = new ImBoolean(false);
     private final ImBoolean cannyf = new ImBoolean(false);
     private final ImBoolean sizerf = new ImBoolean(false);
+    private final ImBoolean stabf = new ImBoolean(false);
+    private final ImBoolean featuref = new ImBoolean(false);
+    private final ImBoolean smoothingf = new ImBoolean(false);
 
     private final ImFloat blurd = new ImFloat(1.0f);
     private final ImInt blurk = new ImInt(5);
@@ -35,15 +35,20 @@ public class PreprocessorUiModule implements UIModule<Mat> {
     private final CannyPreprocessor canny;
     private final FrameSizerPreprocessor sizer;
 
+    private final FramePreprocessor stabilization;
+    private final FeatureBasedStabilizer featureBasedStabilizer;
+
     private final Resolution[] resolutions;
 
-
     public PreprocessorUiModule(GrayColorPreprocessor gray, BlurPreprocessor blur, CannyPreprocessor canny,
-                                FrameSizerPreprocessor sizer) {
+                                FrameSizerPreprocessor sizer, StabilizationFramePreprocessor stabilization,
+                                FeatureBasedStabilizer featureBasedStabilizer) {
         this.gray = gray;
         this.blur = blur;
         this.canny = canny;
         this.sizer = sizer;
+        this.stabilization = stabilization;
+        this.featureBasedStabilizer = featureBasedStabilizer;
 
         this.swidth = new ImInt(sizer.getSize().width());
         this.sheight = new ImInt(sizer.getSize().height());
@@ -79,13 +84,19 @@ public class PreprocessorUiModule implements UIModule<Mat> {
         ImGui.inputFloat(LocalizationManager.tr("preprocessor.gaussian.delta"), blurd, 0.05f, 1f, "%.2f");
         ImGui.separator();
 
+//        ImGui.newLine();
+//        ImGui.sameLine();
+//        ImGui.checkbox(LocalizationManager.tr("preprocessor.canny.name"), cannyf);
+//        ImGui.sameLine();
+//        ImGui.inputInt(LocalizationManager.tr("preprocessor.canny.min"), canny1);
+//        ImGui.sameLine();
+//        ImGui.inputInt(LocalizationManager.tr("preprocessor.canny.max"), canny2);
+
         ImGui.newLine();
-        ImGui.sameLine();
-        ImGui.checkbox(LocalizationManager.tr("preprocessor.canny.name"), cannyf);
-        ImGui.sameLine();
-        ImGui.inputInt(LocalizationManager.tr("preprocessor.canny.min"), canny1);
-        ImGui.sameLine();
-        ImGui.inputInt(LocalizationManager.tr("preprocessor.canny.max"), canny2);
+        ImGui.checkbox(LocalizationManager.tr("preprocessor.stabilization.name"), stabf);
+
+        ImGui.newLine();
+        ImGui.checkbox(("featuref"), featuref);
 
         ImGui.newLine();
 
@@ -113,22 +124,45 @@ public class PreprocessorUiModule implements UIModule<Mat> {
     }
 
     @Override
-    public Mat execute(Mat mat) {
-        if (sizerf.get()) mat = sizer.process(mat);
+    public MatWrapper execute(MatWrapper mat) {
+        if (sizerf.get()) sizer.process(mat.mat());
 
-        if (grayscalef.get()) mat = gray.process(mat);
+        if (grayscalef.get()) gray.process(mat.mat());
 
         if (blurf.get()) {
             blur.setD(blurd.get());
             blur.setKernel(blurk.get());
-            mat = blur.process(mat);
+            blur.process(mat.mat());
         }
         if (cannyf.get()) {
             canny.setV(canny1.get());
             canny.setV1(canny2.get());
-            mat = canny.process(mat);
+            canny.process(mat.mat());
         }
+        if (stabf.get())  stabilization.process(mat.mat());
+
+        if (featuref.get())  featureBasedStabilizer.process(mat.mat());
+
         return mat;
+//        if (sizerf.get()) mat = sizer.process(mat.mat());
+//
+//        if (grayscalef.get()) mat = gray.process(mat);
+//
+//        if (blurf.get()) {
+//            blur.setD(blurd.get());
+//            blur.setKernel(blurk.get());
+//            mat = blur.process(mat);
+//        }
+//        if (cannyf.get()) {
+//            canny.setV(canny1.get());
+//            canny.setV1(canny2.get());
+//            mat = canny.process(mat);
+//        }
+//        if (stabf.get()) mat = stabilization.process(mat);
+//
+//        if (featuref.get()) mat = featureBasedStabilizer.process(mat);
+//
+//        return mat;
     }
 
     @Override

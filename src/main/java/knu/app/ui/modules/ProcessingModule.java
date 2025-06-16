@@ -1,17 +1,26 @@
 package knu.app.ui.modules;
 
 import imgui.ImGui;
+import imgui.flag.ImGuiTreeNodeFlags;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
-import knu.app.bll.utils.processors.DetectionResult;
-import knu.app.bll.utils.processors.hog.HogSvmDetectorConfig;
-import knu.app.bll.utils.processors.hog.HogSvmUtils;
-import knu.app.bll.processors.detection.*;
+import knu.app.bll.ObjectTrackerFactory;
+import knu.app.bll.mot.TrackingManager;
+import knu.app.bll.processors.detection.HogSvmDetector;
+import knu.app.bll.processors.detection.ORBObjectDetector;
+import knu.app.bll.processors.detection.SIFTObjectDetector;
+import knu.app.bll.processors.detection.SURFObjectDetector;
 import knu.app.bll.processors.tracker.CSRTTracker;
+import knu.app.bll.processors.tracker.KalmanObjectTracker;
 import knu.app.bll.processors.tracker.MilTracker;
-import knu.app.bll.processors.tracker.ObjectTrackerWithKalman;
 import knu.app.bll.processors.tracker.OpticalFlowTracker;
 import knu.app.bll.utils.LocalizationManager;
+import knu.app.bll.utils.MatWrapper;
+import knu.app.bll.utils.MetricsEvaluator;
+import knu.app.bll.utils.processors.DetectionResult;
+import knu.app.bll.utils.processors.TrackedObject;
+import knu.app.bll.utils.processors.hog.HogSvmDetectorConfig;
+import knu.app.bll.utils.processors.hog.HogSvmUtils;
 import knu.app.ui.processings.detectors.*;
 import knu.app.ui.processings.renders.CenterPointRendererUI;
 import knu.app.ui.processings.renders.FeaturedPointsRendererUI;
@@ -25,44 +34,59 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-public class ProcessingModule implements UIModule<Mat> {
+public class ProcessingModule implements UIModule<MatWrapper> {
+    //    private final DetectionTrackingManager detectionTrackingManager;
+    private final TrackingManager trackingManager;
+
     private final ImBoolean isOp = new ImBoolean(true);
+
+    private DetectionResult detectionResult = new DetectionResult();
 
     private final ImBoolean useDetectors = new ImBoolean(false);
     private final ImBoolean useTrackers = new ImBoolean(false);
 
-    private DetectionResult detectionResult = new DetectionResult();
-    private List<Point2f> trackingResult = new LinkedList<>();
+    private final ImInt selectedDetector = new ImInt(-1);
+    private final ImInt selectedTracker = new ImInt(-1);
+    private final List<DetectorUI> detectors = new ArrayList<>();
+    private final List<TrackerUI> trackers = new ArrayList<>();
 
     private final ImBoolean drawDetections = new ImBoolean(true);
     private final ImBoolean drawTracking = new ImBoolean(true);
 
-
-    private final List<DetectorUI> detectors = new ArrayList<>();
-    private final List<TrackerUI> trackers = new ArrayList<>();
-
-    private final ImInt selectedDetector = new ImInt(-1);
-    private final ImInt selectedTracker = new ImInt(-1);
-
     private final List<RendererUI> renderers = new ArrayList<>();
-    private final ImInt selectedDetectorRendererIndex = new ImInt(0);
+    private final ImInt selectedDetectorRendererIndex = new ImInt(2);
     private final ImInt selectedTrackerRendererIndex = new ImInt(1);
     private String[] rendererNames;
 
-    public ProcessingModule(Mat templateImg, String hogDescriptorFile) {
-        init(templateImg, hogDescriptorFile);
+    private final int[] bufferCapacity;
+    private final float[] iouThreshold;
+    private final int[] nOfMConfirmation;
+    private final int[] maxMissedDeleting;
+
+    private MetricsEvaluator metrics;
+
+    public ProcessingModule(TrackingManager trackingManager, Mat templateImg, String hogDescriptorFile, HogSvmDetectorConfig hogSvmDetectorConfig, MetricsEvaluator metrics) {
+        init(templateImg, hogDescriptorFile, hogSvmDetectorConfig);
+        this.metrics = metrics;
+        this.trackingManager = trackingManager;
+        this.bufferCapacity = new int[]{trackingManager.getBufferCapacity()};
+
+        this.iouThreshold = new float[]{(float) trackingManager.getAssociationAlgorithm().getIouThreshold()};
+        this.nOfMConfirmation = new int[]{trackingManager.getConfirmationAlgorithm().getN(), trackingManager.getConfirmationAlgorithm().getM()};
+        this.maxMissedDeleting = new int[]{trackingManager.getDeletingConfirmationAlgorithm().getMaxMissed()};
     }
 
     public static final String PROCESSOR_ID = LocalizationManager.tr("menu.processor.name");
 
-    public void init(Mat templateImg, String hogDescriptorFile) {
-//        detectors.add(new FMDDetectorUI(new FarnebackMotionDetector()));
+    public void init(Mat templateImg, String hogDescriptorFile, HogSvmDetectorConfig hogSvmDetectorConfig) {
         detectors.add(new ORBDetectorUI(new ORBObjectDetector(templateImg)));
         detectors.add(new SIFTDetectorUI(new SIFTObjectDetector(templateImg)));
         detectors.add(new SURFDetectorUI(new SURFObjectDetector(templateImg)));
-        detectors.add(new HogDetectorUI(new HogSvmDetector(HogSvmUtils.loadDescriptorFromFile(hogDescriptorFile), HogSvmDetectorConfig.withTestConfig())));
+        detectors.add(new HogDetectorUI(new HogSvmDetector(HogSvmUtils.loadDescriptorFromFile(hogDescriptorFile), hogSvmDetectorConfig)));
 
-        trackers.add(new KalmanTrackerUI(new ObjectTrackerWithKalman()));
+
+        ObjectTrackerFactory trackerFactory = ObjectTrackerFactory.getInstance();
+        trackers.add(new KalmanTrackerUI(new KalmanObjectTracker()));
         trackers.add(new LucasKanadeTrackerUI(new OpticalFlowTracker()));
         trackers.add(new CSRTTrackerUI(new CSRTTracker()));
         trackers.add(new MILTrackerUI(new MilTracker()));
@@ -89,87 +113,117 @@ public class ProcessingModule implements UIModule<Mat> {
         ImGui.pushItemWidth(150);
 
         renderDetectors();
-
-        ImGui.newLine();
-        ImGui.separator();
-        ImGui.newLine();
-
         renderTrackers();
-
-        ImGui.newLine();
-        ImGui.separator();
-        ImGui.newLine();
-
+        renderTrackingManager();
         renderDrawingSettings();
-
 
         ImGui.popItemWidth();
         ImGui.end();
     }
 
     private void renderDetectors() {
-        ImGui.checkbox(LocalizationManager.tr("processor.detectors.enable"), useDetectors);
-        ImGui.beginDisabled(!useDetectors.get());
-
-        for (int i = 0; i < detectors.size(); i++) {
-            ImGui.radioButton(detectors.get(i).getName(), selectedDetector, i);
-            if (i == selectedDetector.get()) {
-                detectors.get(selectedDetector.get()).renderSettings();
+        if (ImGui.collapsingHeader(LocalizationManager.tr("processor.detectors.name"), ImGuiTreeNodeFlags.DefaultOpen)) {
+            ImGui.checkbox(LocalizationManager.tr("processor.detectors.enable"), useDetectors);
+            ImGui.beginDisabled(!useDetectors.get());
+            for (int i = 0; i < detectors.size(); i++) {
+                ImGui.radioButton(detectors.get(i).getName(), selectedDetector, i);
+                if (i == selectedDetector.get()) detectors.get(selectedDetector.get()).renderSettings();
             }
+            ImGui.endDisabled();
         }
-        ImGui.endDisabled();
     }
 
     private void renderTrackers() {
+        if (ImGui.collapsingHeader(LocalizationManager.tr("processor.tracker.name"), ImGuiTreeNodeFlags.DefaultOpen)) {
         ImGui.checkbox(LocalizationManager.tr("processor.tracker.enable"), useTrackers);
         ImGui.beginDisabled(!useTrackers.get());
 
         for (int i = 0; i < trackers.size(); i++) {
-            ImGui.radioButton(trackers.get(i).getName(), selectedTracker, i);
+            if (ImGui.radioButton(trackers.get(i).getName(), selectedTracker, i)) {
+                trackingManager.setObjectTracker(trackers.get(i).getKey());
+            }
             if (i == selectedTracker.get()) {
                 trackers.get(selectedTracker.get()).renderSettings();
             }
         }
         ImGui.endDisabled();
+        }
+    }
+
+    private void renderTrackingManager() {
+        if (ImGui.collapsingHeader(LocalizationManager.tr("processor.tracker.manager.name"), ImGuiTreeNodeFlags.DefaultOpen)) {
+
+            ImGui.bulletText(String.format("%s: %s", LocalizationManager.tr("processor.tracker.manager.buffer.size"), trackingManager.getBufferSize()));
+            if (ImGui.sliderInt(LocalizationManager.tr("processor.tracker.manager.buffer.capacity"), bufferCapacity, 0, 250))
+                trackingManager.setBuffCapacity(bufferCapacity[0]);
+            if (ImGui.button(LocalizationManager.tr("processor.tracker.manager.buffer.clear"))) trackingManager.reset();
+            ImGui.newLine();
+            if (ImGui.sliderFloat(LocalizationManager.tr("processor.tracker.manager.iouthreshold"), iouThreshold, 0, 1, "%.2f"))
+                trackingManager.getAssociationAlgorithm().setIouThreshold(iouThreshold[0]);
+            ImGui.newLine();
+            if (ImGui.sliderInt2(LocalizationManager.tr("processor.tracker.manager.conformation.NofM"), nOfMConfirmation, 0, 32)) {
+                trackingManager.getConfirmationAlgorithm().setN(nOfMConfirmation[0]);
+                trackingManager.getConfirmationAlgorithm().setM(nOfMConfirmation[1]);
+            }
+            ImGui.newLine();
+            if (ImGui.sliderInt(LocalizationManager.tr("processor.tracker.manager.maxmissed"), maxMissedDeleting, 0, 60))
+                trackingManager.getDeletingConfirmationAlgorithm().setMaxMissed(maxMissedDeleting[0]);
+
+        }
     }
 
     private void renderDrawingSettings() {
-        ImGui.checkbox(LocalizationManager.tr("processor.draw.enable"), drawDetections);
-        ImGui.beginDisabled(!drawDetections.get());
-        ImGui.combo(LocalizationManager.tr("processor.draw.choose") + "##" + "detection", selectedDetectorRendererIndex,
-                rendererNames, rendererNames.length);
-        renderers.get(selectedDetectorRendererIndex.get()).renderSettings("detect");
-        ImGui.endDisabled();
+        if (ImGui.collapsingHeader(LocalizationManager.tr("processor.draw.name"), ImGuiTreeNodeFlags.DefaultOpen)) {
+            ImGui.checkbox(LocalizationManager.tr("processor.draw.enable"), drawDetections);
+            ImGui.beginDisabled(!drawDetections.get());
+            ImGui.combo(LocalizationManager.tr("processor.draw.choose") + "##" + "detection", selectedDetectorRendererIndex, rendererNames, rendererNames.length);
+            renderers.get(selectedDetectorRendererIndex.get()).renderSettings("detect");
+            ImGui.endDisabled();
 
+            imGuiSeparate();
+
+            ImGui.checkbox(LocalizationManager.tr("processor.draw.enable") + "##" + "tracling", drawTracking);
+            ImGui.beginDisabled(!drawTracking.get());
+            ImGui.combo(LocalizationManager.tr("processor.draw.choose") + "##" + "tracking", selectedTrackerRendererIndex, rendererNames, rendererNames.length);
+            renderers.get(selectedTrackerRendererIndex.get()).renderSettings("track");
+            ImGui.endDisabled();
+        }
+    }
+
+    private static void imGuiSeparate() {
         ImGui.newLine();
         ImGui.separator();
         ImGui.newLine();
-
-        ImGui.checkbox(LocalizationManager.tr("processor.draw.enable"), drawTracking);
-        ImGui.beginDisabled(!drawTracking.get());
-        ImGui.combo(LocalizationManager.tr("processor.draw.choose") + "##" + "tracking", selectedTrackerRendererIndex,
-                rendererNames, rendererNames.length);
-        renderers.get(selectedTrackerRendererIndex.get()).renderSettings("track");
-        ImGui.endDisabled();
     }
 
     @Override
-    public Mat execute(Mat mat) {
+    public MatWrapper execute(MatWrapper matWrapper) {
+        Mat mat = matWrapper.mat();
         executeDetectors(mat);
-        executeTrackers(mat);
+        List<TrackedObject> trackedObjects = null;
+        if (useTrackers.get() && selectedTracker.get() >= 0 && selectedTracker.get() < trackers.size()) {
+            trackedObjects = trackingManager.update(mat, detectionResult);
+        }
 
         if (drawDetections.get() && detectionResult != null) {
-            if (!detectionResult.getPoints().isEmpty()) {
-                renderers.get(selectedDetectorRendererIndex.get()).render(mat, detectionResult.getPoints());
-            } else if (!detectionResult.getRects().isEmpty()) {
+            if (!detectionResult.getRects().isEmpty()) {
                 renderers.get(selectedDetectorRendererIndex.get()).render(mat, detectionResult.getRects(), detectionResult.getScores(), true);
             }
         }
-        if (drawTracking.get() && trackingResult != null)
-            renderers.get(selectedTrackerRendererIndex.get()).render(mat, trackingResult);
 
-        return mat;
+        if (drawTracking.get()) {
+            if (trackedObjects != null)
+                renderers.get(selectedTrackerRendererIndex.get()).render(mat, trackedObjects, true);
+        }
+
+//        if(!detectionResult.getRects().isEmpty())
+//        metrics.evaluate(matWrapper.frameIndex(), detectionResult.getRects());
+        if(trackedObjects != null)
+        metrics.evaluate(matWrapper.frameIndex(), trackedObjects.stream().map(TrackedObject::getRect).toList());
+
+        return matWrapper;
     }
+
 
     private void executeDetectors(Mat mat) {
         if (useDetectors.get() && selectedDetector.get() >= 0 && selectedDetector.get() < detectors.size()) {
@@ -177,11 +231,6 @@ public class ProcessingModule implements UIModule<Mat> {
         }
     }
 
-    private void executeTrackers(Mat mat) {
-        if (useTrackers.get() && selectedTracker.get() >= 0 && selectedTracker.get() < trackers.size()) {
-            trackingResult = trackers.get(selectedTracker.get()).track(mat, detectionResult.getPoints());
-        }
-    }
 
 
     @Override
