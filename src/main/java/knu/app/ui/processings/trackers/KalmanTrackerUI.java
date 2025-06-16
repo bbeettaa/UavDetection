@@ -1,16 +1,14 @@
 package knu.app.ui.processings.trackers;
 
-import knu.app.bll.processors.tracker.ObjectTrackerWithKalman;
+import knu.app.bll.processors.tracker.KalmanObjectTracker;
+import knu.app.bll.processors.tracker.ObjectTracker;
 import knu.app.bll.utils.LocalizationManager;
-import org.bytedeco.opencv.opencv_core.Mat;
-import org.bytedeco.opencv.opencv_core.Point2f;
-
-import java.util.List;
+import knu.app.bll.ObjectTrackerFactory;
 
 public class KalmanTrackerUI implements TrackerUI {
-    private final ObjectTrackerWithKalman kalman;
+    private final KalmanObjectTracker kalman;
 
-    public KalmanTrackerUI(ObjectTrackerWithKalman kalman) {
+    public KalmanTrackerUI(KalmanObjectTracker kalman) {
         this.kalman = kalman;
     }
 
@@ -24,8 +22,13 @@ public class KalmanTrackerUI implements TrackerUI {
     }
 
     @Override
-    public List<Point2f> track(Mat mat, List<Point2f> detections) {
-        return kalman.track(mat, detections);
+    public ObjectTracker getTracker() {
+        return kalman;
+    }
+
+    @Override
+    public String getKey() {
+        return ObjectTrackerFactory.TrackerType.KALMAN.name();
     }
 }
 
