@@ -5,7 +5,7 @@ import java.util.Queue;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class OverwritingQueueBlockedFrameBuffer<T> implements Bufferable<T> {
+public class OverwritingQueueBlockedFrameBuffer<T> implements BufferableQueue<T> {
     private final int capacity;
     private final Queue<BufferElement<T>> queue;
 
@@ -43,7 +43,7 @@ public class OverwritingQueueBlockedFrameBuffer<T> implements Bufferable<T> {
             }
             return queue.poll();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt(); // good practice
+            Thread.currentThread().interrupt();
             return null;
         } finally {
             lock.unlock();

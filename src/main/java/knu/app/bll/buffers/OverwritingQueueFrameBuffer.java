@@ -4,7 +4,7 @@ import java.util.LinkedList;
 import java.util.Queue;
 
 
-public class OverwritingQueueFrameBuffer<T> implements Bufferable<T> {
+public class OverwritingQueueFrameBuffer<T> implements BufferableQueue<T> {
     private final int capacity;
     private final Queue<BufferElement<T>> queue;
 

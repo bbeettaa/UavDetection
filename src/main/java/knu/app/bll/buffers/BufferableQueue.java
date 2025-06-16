@@ -1,6 +1,6 @@
 package knu.app.bll.buffers;
 
-public interface Bufferable<T> {
+public interface BufferableQueue<T> {
     void put(BufferElement<T> element);
     BufferElement<T> get();
     boolean isEmpty();
