@@ -1,6 +1,7 @@
 package knu.app.bll.processors.draw;
 
 
+import knu.app.bll.utils.processors.TrackedObject;
 import org.bytedeco.opencv.opencv_core.*;
 
 import java.util.List;
@@ -42,8 +43,7 @@ public class ROIRenderer implements DetectionRenderer {
     }
 
     @Override
-    public void render(Mat frame, List<Rect> rects, List<Double> scores,
-                       boolean renderScores, Scalar color, int thick, int lineType) {
+    public void render(Mat frame, List<Rect> rects, List<Double> scores, boolean renderScores, Scalar color, int thick, int lineType) {
         if (rects == null || rects.isEmpty()) return;
 
         if (renderScores && (scores == null || scores.size() < rects.size())) {
@@ -65,25 +65,36 @@ public class ROIRenderer implements DetectionRenderer {
                 rectangle(frame,
                         new Point(textOrg.x(), textOrg.y() - textSize.height() - baseLine[0]),
                         new Point(textOrg.x() + textSize.width(), textOrg.y() + baseLine[0]),
-                        new Scalar(0, 0, 0, 0),
-                        CV_FILLED,
-                        lineType,
-                        0
-                );
-                putText(
-                        frame,
-                        text,
-                        textOrg,
-                        FONT_HERSHEY_SIMPLEX,
-                        0.5,
-                        color,
-                        thick,
-                        lineType,
-                        false
-                );
+                        new Scalar(0, 0, 0, 0), CV_FILLED, lineType, 0);
+                putText(frame, text, textOrg, FONT_HERSHEY_SIMPLEX, 0.5, color, thick, lineType, false);
             }
         }
     }
+
+
+    @Override
+    public void render(Mat frame, List<TrackedObject> trackedObjects, boolean renderScores) {
+        render(frame, trackedObjects, renderScores, scalar, thick, type);
+    }
+
+    @Override
+    public void render(Mat frame, List<TrackedObject> trackedObjects, boolean renderScores, Scalar color, int thick, int type) {
+        if (trackedObjects.isEmpty()) return;
+
+        TrackedObject obj;
+        for (TrackedObject trackedObject : trackedObjects) {
+            obj = trackedObject;
+            rectangle(frame, obj.getRect(), color, thick, type, 0);
+
+            String text = String.format("%.2f", obj.getScore());
+            int[] baseLine = new int[1];
+            var textSize = getTextSize(text, FONT_HERSHEY_SIMPLEX, 0.5, thick, baseLine);
+            Point textOrg = new Point(obj.getRect().x(), Math.max(obj.getRect().y(), textSize.height() + baseLine[0] + 2));
+            rectangle(frame, new Point(textOrg.x(), textOrg.y() - textSize.height() - baseLine[0]), new Point(textOrg.x() + textSize.width(), textOrg.y() + baseLine[0]), new Scalar(0, 0, 0, 0), 8, type, 0);
+            putText(frame, text, textOrg, FONT_HERSHEY_SIMPLEX, 0.5, color, thick, type, false);
+        }
+    }
+
 
     public void setScalar(Scalar scalar) {
         this.scalar = scalar;

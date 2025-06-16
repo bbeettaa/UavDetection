@@ -5,6 +5,7 @@ import imgui.type.ImFloat;
 import imgui.type.ImInt;
 import knu.app.bll.processors.draw.DetectionRenderer;
 import knu.app.bll.utils.LocalizationManager;
+import knu.app.bll.utils.processors.TrackedObject;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Point2f;
 import org.bytedeco.opencv.opencv_core.Rect;
@@ -54,6 +55,12 @@ public abstract class RendererUI {
     public void render(Mat mat, List<Rect> rects, List<Double> scores, boolean renderScores) {
         renderer.render(mat, rects, scores, renderScores, scalar, thickness.get(), lineType.get());
     }
+
+    public void render(Mat mat, List<TrackedObject> trackedObjects, boolean renderScores) {
+        renderer.render(mat, trackedObjects, renderScores, scalar, thickness.get(), lineType.get());
+    }
+
+
 
     public DetectionRenderer getRenderer() {
         return renderer;
