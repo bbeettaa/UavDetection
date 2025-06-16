@@ -44,7 +44,17 @@
             <artifactId>opencv-platform</artifactId>
             <version>4.5.5-1.5.7</version>
         </dependency>
-
+        <dependency>
+            <groupId>org.jgrapht</groupId>
+            <artifactId>jgrapht-core</artifactId>
+            <version>1.5.2</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/com.github.oshi/oshi-core -->
+        <dependency>
+            <groupId>com.github.oshi</groupId>
+            <artifactId>oshi-core</artifactId>
+            <version>6.8.1</version>
+        </dependency>
 
         <!-- https://mvnrepository.com/artifact/io.imgui.java/lwjgl3 -->
         <dependency>
@@ -90,17 +100,27 @@
             <artifactId>imgui-java-natives-windows</artifactId>
             <version>${imgui.java.version}</version>
         </dependency>
-        <!--        <dependency>-->
-        <!--            <groupId>io.github.spair</groupId>-->
-        <!--            <artifactId>imgui-java-natives-linux</artifactId>-->
-        <!--            <version>${imgui.java.version}</version>-->
-        <!--        </dependency>-->
         <dependency>
             <groupId>io.github.spair</groupId>
             <artifactId>imgui-java-app</artifactId>
             <version>${imgui.java.version}</version>
         </dependency>
 
+
+
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>5.8.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>4.5.1</version>
+            <scope>test</scope>
+        </dependency>
 
     </dependencies>
 
