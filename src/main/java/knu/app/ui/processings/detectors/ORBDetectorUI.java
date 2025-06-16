@@ -53,4 +53,9 @@ public class ORBDetectorUI implements DetectorUI {
     public DetectionResult detect(Mat mat) {
         return detector.detect(mat);
     }
+
+    @Override
+    public ORBObjectDetector getDetector() {
+        return detector;
+    }
 }

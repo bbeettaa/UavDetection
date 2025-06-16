@@ -41,4 +41,9 @@ public class SIFTDetectorUI implements DetectorUI {
     public DetectionResult detect(Mat mat) {
         return detector.detect(mat);
     }
+
+    @Override
+    public SIFTObjectDetector getDetector() {
+        return detector;
+    }
 }

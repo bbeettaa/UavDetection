@@ -1,5 +1,6 @@
 package knu.app.samples;
 
+import knu.app.bll.utils.Utils;
 import knu.app.bll.utils.processors.DetectionResult;
 import knu.app.bll.processors.detection.ORBObjectDetector;
 import knu.app.bll.processors.detection.ObjectDetector;
@@ -21,8 +22,8 @@ import static org.bytedeco.opencv.global.opencv_imgproc.*;
 public class ObjectDetectionTrackingSample {
 
     public static void main(String[] args) throws Exception {
-        String videoPath = "input.mp4";
-        String templatePath = "drone.jpg";
+        String videoPath = "/home/bedu/Документы/input.mp4";
+        String templatePath = "/home/bedu/Документы/drone.jpg";
 
 //        ObjectDetector detector = new SURFObjectDetector(imread(templatePath, IMREAD_GRAYSCALE), 200, 4, 4, true, true);
 //        ObjectDetector detector = new SIFTObjectDetector(imread(templatePath, IMREAD_GRAYSCALE));
@@ -34,7 +35,7 @@ public class ObjectDetectionTrackingSample {
         DetectionRenderer trackRenderer = new KeypointsRenderer(10);
 
 
-//        ObjectTracker tracker = new ObjectTrackerWithKalman();
+//        ObjectTracker tracker = new KalmanObjectTracker();
         ObjectTracker tracker = new MilTracker();
 //        ObjectTracker tracker = SimpleTrackers.withKcfTracker();
 
@@ -54,9 +55,11 @@ public class ObjectDetectionTrackingSample {
             cvtColor(mat, gray, COLOR_BGR2GRAY);
 
             DetectionResult result = detector.detect(mat);
-            List<Point2f> trackedPoints = tracker.track(mat, result.getPoints());
-            renderer.render(mat, result.getPoints());
-            trackRenderer.render(mat, trackedPoints, Scalar.YELLOW, 4, -1);
+            for(Rect r : result.getRects()) {
+                List<Point2f> trackedPoints = tracker.update(mat, Utils.rectToPoints(r));
+                trackRenderer.render(mat, trackedPoints, Scalar.YELLOW, 4, -1);
+            }
+            renderer.render(mat, result.getRects(), result.getScores(), true);
 
             canvas.showImage(converter.convert(mat));
         }

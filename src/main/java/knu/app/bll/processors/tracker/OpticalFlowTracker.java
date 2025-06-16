@@ -1,5 +1,6 @@
 package knu.app.bll.processors.tracker;
 
+import knu.app.bll.utils.Utils;
 import org.bytedeco.opencv.opencv_core.*;
 
 import java.nio.ByteBuffer;
@@ -13,31 +14,49 @@ import static org.bytedeco.opencv.global.opencv_video.calcOpticalFlowPyrLK;
 public class OpticalFlowTracker implements ObjectTracker {
     private final Mat prevGray = new Mat();
     private final Mat prevPtsMat = new Mat();
+    private boolean isInitialized = false;
 
     @Override
-    public List<Point2f> track(Mat frameGray, List<Point2f> roiPoints) {
-        if (roiPoints == null || roiPoints.isEmpty()) {
-            return new LinkedList<>();
+    public boolean init(Mat frameGray, List<Point2f> initialPoints) {
+        try {
+            if (frameGray.empty() || initialPoints == null || initialPoints.isEmpty())
+                return false;
+            close();
+            frameGray.copyTo(prevGray);
+            convertPointsToMat(initialPoints).copyTo(prevPtsMat);
+            isInitialized = true;
+            return true;
+        } catch (NullPointerException e) {
+        }
+        return false;
+    }
+
+    @Override
+    public boolean init(Mat frameGray, Rect roi) {
+        try {
+            if (frameGray.empty() || roi == null || roi.area() == 0)
+                return false;
+            close();
+            frameGray.copyTo(prevGray);
+            convertPointsToMat(Utils.rectToPoints(roi)).copyTo(prevPtsMat);
+            isInitialized = true;
+            return true;
+        } catch (NullPointerException e) {
+        }
+        return false;
+    }
+
+    @Override
+    public List<Point2f> update(Mat frameGray, List<Point2f> newPoints) {
+        LinkedList<Point2f> trackedPoints = new LinkedList<>();
+        if (!isInitialized || frameGray.empty()) {
+            return trackedPoints;
         }
 
-        // Конвертируем LinkedList<Point2f> в Mat
-        Mat nextPts = new Mat(1, roiPoints.size(), CV_32FC2);
-        FloatBuffer buf = nextPts.createBuffer();
-        for (Point2f p : roiPoints) {
-            buf.put(p.x()).put(p.y());
-        }
-
+        Mat nextPts = convertPointsToMat(newPoints);
         Mat status = new Mat();
         Mat err = new Mat();
 
-        if (prevGray.empty()) {
-            // Первый кадр - просто сохраняем точки и изображение
-            frameGray.copyTo(prevGray);
-            nextPts.copyTo(prevPtsMat);
-            return new LinkedList<>(roiPoints);
-        }
-
-        // Вычисляем optical flow
         calcOpticalFlowPyrLK(
                 prevGray,
                 frameGray,
@@ -52,26 +71,47 @@ public class OpticalFlowTracker implements ObjectTracker {
                 0.001
         );
 
-        // Обновляем предыдущее изображение и точки
-        frameGray.copyTo(prevGray);
-        nextPts.copyTo(prevPtsMat);
+        updateTrackerState(frameGray, nextPts);
 
-        // Конвертируем результат обратно в LinkedList<Point2f>
-        LinkedList<Point2f> trackedPoints = new LinkedList<>();
-        FloatBuffer resultBuf = nextPts.createBuffer();
+        return convertResult(newPoints, nextPts, status);
+    }
+
+    @Override
+    public void close() {
+        prevGray.close();
+        prevPtsMat.close();
+        isInitialized = false;
+    }
+
+    private Mat convertPointsToMat(List<Point2f> points) {
+        Mat mat = new Mat(1, points.size(), CV_32FC2);
+        FloatBuffer buf = mat.createBuffer();
+        for (Point2f p : points) {
+            buf.put(p.x()).put(p.y());
+        }
+        return mat;
+    }
+
+    private void updateTrackerState(Mat newFrame, Mat newPoints) {
+        newFrame.copyTo(prevGray);
+        newPoints.copyTo(prevPtsMat);
+    }
+
+    private LinkedList<Point2f> convertResult(List<Point2f> original, Mat resultMat, Mat status) {
+        LinkedList<Point2f> points = new LinkedList<>();
+        FloatBuffer resultBuf = resultMat.createBuffer();
         ByteBuffer statusBuf = status.createBuffer();
 
-        for (int i = 0; i < roiPoints.size(); i++) {
-            if (i<statusBuf.limit() && statusBuf.get(i) == 1) { // Точка успешно отслежена
+        for (int i = 0; i < original.size(); i++) {
+            if (statusBuf.get(i) == 1) {
                 float x = resultBuf.get(i * 2);
                 float y = resultBuf.get(i * 2 + 1);
-                trackedPoints.add(new Point2f(x, y));
+                points.add(new Point2f(x, y));
             } else {
-                // Если точка потеряна, используем предыдущее положение
-                trackedPoints.add(roiPoints.get(i));
+                points.add(original.get(i));
             }
         }
-
-        return trackedPoints;
+        return points;
     }
 }
+
