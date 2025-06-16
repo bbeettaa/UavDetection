@@ -7,6 +7,7 @@ import org.bytedeco.opencv.opencv_features2d.BFMatcher;
 import org.bytedeco.opencv.opencv_xfeatures2d.SURF;
 
 import java.util.LinkedList;
+import java.util.List;
 
 import static org.bytedeco.opencv.global.opencv_core.NORM_L2;
 
@@ -47,7 +48,11 @@ public class SURFObjectDetector implements ObjectDetector {
         matcher.match(templateDescriptors, descriptors, matches);
 
         LinkedList<Point2f> matchedPoints = filterAndCluster(matches, keypoints);
-        return new DetectionResult(matchedPoints);
+        List<Utils.RectWithScore> rects= Utils.clusterToRects(matchedPoints, 50f);
+        return new DetectionResult(
+                rects.stream().map(e->e.rect).toList(),
+                rects.stream().map(e->e.score).toList()
+        );
     }
 
     private LinkedList<Point2f> filterAndCluster(DMatchVector matches, KeyPointVector frameKeypoints) {

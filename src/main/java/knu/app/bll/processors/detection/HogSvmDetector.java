@@ -37,14 +37,10 @@ public class HogSvmDetector implements ObjectDetector {
         RectVector detections = new RectVector();
         DoublePointer weights = new DoublePointer();
 
-        // 1 detect rois
-        hog.detectMultiScale(gray, detections, weights, c.getHitThreshold(), c.getWinStride(), c.getPadding(),
-                c.getScale(), c.getFinalThreshold(), c.isUseMeanShiftGrouping());
+        hog.detectMultiScale(gray, detections, weights, c.getHitThreshold(), c.getWinStride(), c.getPadding(), c.getScale(), c.getFinalThreshold(), c.isUseMeanShiftGrouping());
 
-        // 2 group
         hog.groupRectangles(detections, weights, c.getGroupThreshold(), c.getEps());
 
-        // 3 Конвертируем назад в структуры для NMS
         RectVector groupedBoxes = new RectVector(detections.size());
         FloatPointer groupedWeights = new FloatPointer(weights.limit());
         for (int i = 0; i < detections.size(); i++) {
@@ -55,8 +51,6 @@ public class HogSvmDetector implements ObjectDetector {
         IntPointer indices = new IntPointer(weights.limit());
         NMSBoxes(groupedBoxes, groupedWeights, c.getScoreThreshold(), c.getNmsThreshold(), indices);
 
-
-        // 6. Считываем результаты NMS
         List<Rect> filtered = new ArrayList<>();
         List<Double> scores = new ArrayList<>();
         int count = (int) indices.limit();
@@ -68,16 +62,12 @@ public class HogSvmDetector implements ObjectDetector {
                 scores.add(score);
             }
         }
-
-
         indices.close();
         detections.close();
         weights.close();
 
         gray.release();
-        return new
-
-                DetectionResult(filtered, scores);
+        return new DetectionResult(filtered, scores);
     }
 
     public HOGDescriptor getHog() {

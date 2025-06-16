@@ -33,9 +33,9 @@ public class HogSvmDetectorConfig {
 
     public static HogSvmDetectorConfig withDefaultConfig() {
         return new HogSvmDetectorConfig(
-                2.0,
+                2.94,
                 0.0,
-                1.05,
+                1.10,
                 new Size(8, 8),
                 new Size(32, 32),
                 false,
@@ -43,7 +43,7 @@ public class HogSvmDetectorConfig {
                 0.0f,
                 1.0f,
                 5,
-                0.5);
+                0.25);
     }
 
     public static HogSvmDetectorConfig withTestConfig() {
@@ -60,6 +60,22 @@ public class HogSvmDetectorConfig {
                 5,
                 0.5);
     }
+
+    public static HogSvmDetectorConfig withTestConfig1() {
+        return new HogSvmDetectorConfig(
+                2.43,
+                0.0,
+                1.05,
+                new Size(8, 8),
+                new Size(32, 32),
+                false,
+                0.0,
+                0.0f,
+                0.0f,
+                20,
+                0.84);
+    }
+
 
 
     public double getHitThreshold() {
@@ -104,5 +120,50 @@ public class HogSvmDetectorConfig {
 
     public double getEps() {
         return eps;
+    }
+
+
+    public void setHitThreshold(double hitThreshold) {
+        this.hitThreshold = hitThreshold;
+    }
+
+    public void setFinalThreshold(double finalThreshold) {
+        this.finalThreshold = finalThreshold;
+    }
+
+    public void setScale(double scale) {
+        this.scale = scale;
+    }
+
+    public void setWinStride(Size winStride) {
+        this.winStride = winStride;
+    }
+
+    public void setPadding(Size padding) {
+        this.padding = padding;
+    }
+
+    public void setUseMeanShiftGrouping(boolean useMeanShiftGrouping) {
+        this.useMeanShiftGrouping = useMeanShiftGrouping;
+    }
+
+    public void setWeightThreshold(double weightThreshold) {
+        this.weightThreshold = weightThreshold;
+    }
+
+    public void setScoreThreshold(float scoreThreshold) {
+        this.scoreThreshold = scoreThreshold;
+    }
+
+    public void setNmsThreshold(float nmsThreshold) {
+        this.nmsThreshold = nmsThreshold;
+    }
+
+    public void setGroupThreshold(int groupThreshold) {
+        this.groupThreshold = groupThreshold;
+    }
+
+    public void setEps(double eps) {
+        this.eps = eps;
     }
 }

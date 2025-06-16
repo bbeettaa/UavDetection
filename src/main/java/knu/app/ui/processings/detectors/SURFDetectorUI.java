@@ -42,4 +42,8 @@ public class SURFDetectorUI implements DetectorUI {
         return detector.detect(mat);
     }
 
+    @Override
+    public SURFObjectDetector getDetector() {
+        return detector;
+    }
 }
