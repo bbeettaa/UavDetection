@@ -1,5 +1,6 @@
 package knu.app.bll.processors.draw;
 
+import knu.app.bll.utils.processors.TrackedObject;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Point2f;
 import org.bytedeco.opencv.opencv_core.Rect;
@@ -18,4 +19,7 @@ public interface DetectionRenderer {
 
     void render(Mat frame, List<Rect> rects, List<Double> scores, boolean renderScores);
     void render(Mat frame, List<Rect> rects, List<Double> scores, boolean renderScores, Scalar color, int thick, int type);
+
+    void render(Mat frame, List<TrackedObject> trackedObjects, boolean renderScores);
+    void render(Mat frame, List<TrackedObject> trackedObjects, boolean renderScores, Scalar color, int thick, int type);
 }
