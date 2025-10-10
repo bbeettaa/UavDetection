@@ -1,4 +1,4 @@
-package knu.app.bll.mot;
+package knu.app.bll.algorithms.associative;
 
 
 import knu.app.bll.utils.processors.DetectionResult;
