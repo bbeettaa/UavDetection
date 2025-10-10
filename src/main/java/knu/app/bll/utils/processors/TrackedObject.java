@@ -32,6 +32,10 @@ public class TrackedObject   {
         this.hitHistory = new ArrayList<>();
     }
 
+    public TrackedObject(Rect rect) {
+        this(rect, -1, null);
+    }
+
     // getters & setters
     public int getId() {
         return id;

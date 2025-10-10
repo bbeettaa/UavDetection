@@ -5,7 +5,7 @@ import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import knu.app.bll.utils.LocalizationManager;
 import knu.app.bll.utils.Utils;
-import knu.app.bll.utils.grabbers.PlaybackControlVideoSource;
+import knu.app.bll.grabbers.PlaybackControlVideoSource;
 import org.bytedeco.javacv.Frame;
 
 import javax.swing.*;

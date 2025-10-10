@@ -1,14 +1,12 @@
-package knu.app.bll.utils.grabbers;
+package knu.app.bll.grabbers;
 
 import knu.app.bll.events.EventModelListener;
 import knu.app.bll.utils.Utils;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.Java2DFrameConverter;
 import org.bytedeco.javacv.OpenCVFrameConverter;
-import org.bytedeco.opencv.opencv_core.Mat;
 
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferByte;
 import java.awt.image.WritableRaster;
 import java.io.*;
 import java.util.concurrent.TimeUnit;
@@ -17,8 +15,6 @@ import java.util.logging.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.bytedeco.opencv.global.opencv_core.CV_8UC3;
 
 public class PlaybackFFmpegRawVideoSource implements PlaybackControlVideoSource, VideoSource {
     private static final Logger logger = Logger.getLogger(PlaybackFFmpegRawVideoSource.class.getName());

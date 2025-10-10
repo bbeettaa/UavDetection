@@ -2,14 +2,13 @@ package knu.app.samples;
 
 import knu.app.bll.preprocessors.FramePreprocessor;
 import knu.app.bll.preprocessors.StabilizationFramePreprocessor;
-import knu.app.bll.utils.grabbers.PlaybackFFmpegRawVideoSource;
+import knu.app.bll.grabbers.PlaybackFFmpegRawVideoSource;
 import org.bytedeco.javacv.CanvasFrame;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.OpenCVFrameConverter;
 import org.bytedeco.opencv.opencv_core.Mat;
 
 import static org.bytedeco.opencv.global.opencv_calib3d.estimateAffine2D;
-import static org.bytedeco.opencv.global.opencv_imgproc.*;
 import static org.bytedeco.opencv.global.opencv_video.calcOpticalFlowPyrLK;
 
 public class VideoStabilizationExample {

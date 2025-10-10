@@ -4,7 +4,7 @@ import imgui.ImGui;
 import imgui.flag.ImGuiTreeNodeFlags;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
-import knu.app.bll.ObjectTrackerFactory;
+import knu.app.bll.utils.ObjectTrackerFactory;
 import knu.app.bll.mot.TrackingManager;
 import knu.app.bll.processors.detection.HogSvmDetector;
 import knu.app.bll.processors.detection.ORBObjectDetector;
@@ -28,10 +28,8 @@ import knu.app.ui.processings.renders.RendererUI;
 import knu.app.ui.processings.renders.RoiRendererUI;
 import knu.app.ui.processings.trackers.*;
 import org.bytedeco.opencv.opencv_core.Mat;
-import org.bytedeco.opencv.opencv_core.Point2f;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 public class ProcessingModule implements UIModule<MatWrapper> {

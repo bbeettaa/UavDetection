@@ -1,6 +1,6 @@
-package knu.app.bll.mot;
+package knu.app.bll.algorithms.associative;
 
-import knu.app.bll.utils.Utils;
+import knu.app.bll.algorithms.IouComputer;
 import knu.app.bll.utils.processors.DetectionResult;
 import knu.app.bll.utils.processors.TrackedObject;
 import org.bytedeco.opencv.opencv_core.Rect;
@@ -51,7 +51,7 @@ public class HungarianIoUAssociationJGraphT implements AssociationAlgorithm {
 
         for (TrackedObject track : tracks) {
             for (Rect det : detRects) {
-                double iou = Utils.computeIoU(track.getRect(), det);
+                double iou = IouComputer.computeIoU(track.getRect(), det);
                 if (iou >= iouThreshold) {
                     DefaultWeightedEdge edge = graph.addEdge(track, det);
                     if (edge != null) {

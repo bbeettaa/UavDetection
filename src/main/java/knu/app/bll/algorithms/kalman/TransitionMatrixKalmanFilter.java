@@ -1,22 +1,23 @@
-package knu.app.bll;
+package knu.app.bll.algorithms.kalman;
 
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Point2f;
 
 import static org.bytedeco.opencv.global.opencv_core.CV_32F;
+import static org.bytedeco.opencv.global.opencv_core.memopTypeToStr;
 
-public class KalmanFilter {
+public class TransitionMatrixKalmanFilter implements KalmanFilter {
     private final org.bytedeco.opencv.opencv_video.KalmanFilter kalmanFilter;
     private final Mat state;
     private final Mat measurement;
 
     private final float GATING_THRESHOLD ;
 
-    public KalmanFilter(){
+    public TransitionMatrixKalmanFilter(){
         this(16.0f);
     }
 
-    public KalmanFilter(float gatingThreshold) {
+    public TransitionMatrixKalmanFilter(float gatingThreshold) {
         this.GATING_THRESHOLD = gatingThreshold;
         // 4 states: [x, y, vx, vy], 2 dimensions: [x, y]
         kalmanFilter = new org.bytedeco.opencv.opencv_video.KalmanFilter(4, 2, 0, CV_32F);
@@ -58,13 +59,17 @@ public class KalmanFilter {
     }
 
     public Point2f update(Point2f measurement) {
+        if(state.isNull())
+            throw new IllegalStateException();
+
         Mat prior = kalmanFilter.predict();
         float priorX = prior.ptr(0).getFloat();
         float priorY = prior.ptr(1).getFloat();
-
         boolean didCorrect = false;
 
         if (measurement != null) {
+            if(Float.isNaN(measurement.x()) || Float.isNaN(measurement.y())) throw new IllegalArgumentException();
+
             float innovX = measurement.x() - priorX;
             float innovY = measurement.y() - priorY;
             float innovNorm = (float) Math.hypot(innovX, innovY);
@@ -96,6 +101,8 @@ public class KalmanFilter {
     }
 
     public void setDt(float dt) {
+        if(dt == 0) throw new IllegalArgumentException();
+
         Mat transitionMatrix = Mat.eye(4, 4, CV_32F).asMat();
         transitionMatrix.ptr(0, 2).putFloat(dt);  // x += vx * dt
         transitionMatrix.ptr(1, 3).putFloat(dt);  // y += vy * dt

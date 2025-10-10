@@ -2,7 +2,7 @@ package knu.app.ui.processings.trackers;
 
 import knu.app.bll.processors.tracker.MilTracker;
 import knu.app.bll.utils.LocalizationManager;
-import knu.app.bll.ObjectTrackerFactory;
+import knu.app.bll.utils.ObjectTrackerFactory;
 
 public class MILTrackerUI implements TrackerUI {
     private final MilTracker tracker;

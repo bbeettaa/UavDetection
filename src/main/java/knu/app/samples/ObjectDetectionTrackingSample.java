@@ -8,7 +8,7 @@ import knu.app.bll.processors.draw.DetectionRenderer;
 import knu.app.bll.processors.draw.KeypointsRenderer;
 import knu.app.bll.processors.tracker.MilTracker;
 import knu.app.bll.processors.tracker.ObjectTracker;
-import knu.app.bll.utils.grabbers.PlaybackFFmpegRawVideoSource;
+import knu.app.bll.grabbers.PlaybackFFmpegRawVideoSource;
 import org.bytedeco.javacv.CanvasFrame;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.OpenCVFrameConverter;

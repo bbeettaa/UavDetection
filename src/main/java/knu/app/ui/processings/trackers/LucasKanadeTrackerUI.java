@@ -4,7 +4,7 @@ import knu.app.bll.processors.tracker.ObjectTracker;
 //import knu.app.detection.tracker.SimpleTrackers;
 import knu.app.bll.processors.tracker.OpticalFlowTracker;
 import knu.app.bll.utils.LocalizationManager;
-import knu.app.bll.ObjectTrackerFactory;
+import knu.app.bll.utils.ObjectTrackerFactory;
 
 public class LucasKanadeTrackerUI implements TrackerUI {
     private final ObjectTracker tracker;

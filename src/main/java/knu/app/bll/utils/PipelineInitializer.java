@@ -1,20 +1,20 @@
 package knu.app.bll.utils;
 
-import knu.app.bll.ObjectTrackerFactory;
 import knu.app.bll.buffers.BufferElement;
 import knu.app.bll.buffers.BufferableQueue;
 import knu.app.bll.buffers.OverwritingQueueBlockedFrameBuffer;
 import knu.app.bll.events.EventModelListener;
-import knu.app.bll.mot.AssociationAlgorithm;
-import knu.app.bll.mot.HungarianIoUAssociationJGraphT;
+import knu.app.bll.algorithms.associative.AssociationAlgorithm;
+import knu.app.bll.mot.AssociativeTrackingManager;
+import knu.app.bll.algorithms.associative.HungarianIoUAssociationJGraphT;
 import knu.app.bll.mot.TrackingManager;
 import knu.app.bll.preprocessors.*;
 import knu.app.bll.processors.tracker.CSRTTracker;
 import knu.app.bll.processors.tracker.KalmanObjectTracker;
 import knu.app.bll.processors.tracker.MilTracker;
 import knu.app.bll.processors.tracker.OpticalFlowTracker;
-import knu.app.bll.utils.grabbers.PlaybackControlFFmpegFrameGrabberVideoSource;
-import knu.app.bll.utils.grabbers.PlaybackControlVideoSource;
+import knu.app.bll.grabbers.PlaybackControlFFmpegFrameGrabberVideoSource;
+import knu.app.bll.grabbers.PlaybackControlVideoSource;
 import knu.app.bll.utils.processors.hog.HogSvmDetectorConfig;
 import knu.app.ui.DockSpaceUIModule;
 import knu.app.ui.MainMenuUI;
@@ -73,7 +73,7 @@ public class PipelineInitializer {
 
 
         AssociationAlgorithm associationAlgorithm = new HungarianIoUAssociationJGraphT(0.2);
-        TrackingManager trackingManager = new TrackingManager(associationAlgorithm);
+        TrackingManager trackingManager = new AssociativeTrackingManager(associationAlgorithm);
         EventModelListener stopVideoListener = trackingManager::reset;
         videoSource.addListener(stopVideoListener);
 

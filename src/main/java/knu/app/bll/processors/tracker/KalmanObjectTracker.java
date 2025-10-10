@@ -1,6 +1,7 @@
 package knu.app.bll.processors.tracker;
 
-import knu.app.bll.KalmanFilter;
+import knu.app.bll.algorithms.kalman.KalmanFilter;
+import knu.app.bll.algorithms.kalman.TransitionMatrixKalmanFilter;
 import knu.app.bll.utils.Utils;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Point2f;
@@ -11,10 +12,10 @@ import java.util.List;
 
 public class KalmanObjectTracker implements ObjectTracker {
     private boolean isInitialized;
-    private final KalmanFilter kalmanFilter;
+    private final KalmanFilter transitionMatrixKalmanFilter;
 
     public KalmanObjectTracker(float gatingTh) {
-        this.kalmanFilter = new KalmanFilter(gatingTh);
+        this.transitionMatrixKalmanFilter = new TransitionMatrixKalmanFilter(gatingTh);
         this.isInitialized = false;
     }
 
@@ -28,7 +29,7 @@ public class KalmanObjectTracker implements ObjectTracker {
             return false;
         }
         Point2f center = Utils.rectCenter(Utils.pointsToRect(initialPoints));
-        kalmanFilter.reset(center);
+        transitionMatrixKalmanFilter.reset(center);
         isInitialized = true;
         return true;
     }
@@ -39,7 +40,7 @@ public class KalmanObjectTracker implements ObjectTracker {
             return false;
         }
         Point2f center = Utils.rectCenter(roi);
-        kalmanFilter.reset(center);
+        transitionMatrixKalmanFilter.reset(center);
         isInitialized = true;
         return true;
     }
@@ -53,14 +54,14 @@ public class KalmanObjectTracker implements ObjectTracker {
         Point2f meas = null;
         if (detectionPoints != null && !detectionPoints.isEmpty())
             meas = Utils.rectCenter(Utils.pointsToRect(detectionPoints));
-        Point2f state = kalmanFilter.update(meas);
+        Point2f state = transitionMatrixKalmanFilter.update(meas);
         result.add(state);
         return result;
     }
 
     @Override
     public void close() {
-        kalmanFilter.releaseResources();
+        transitionMatrixKalmanFilter.releaseResources();
         isInitialized = false;
     }
 

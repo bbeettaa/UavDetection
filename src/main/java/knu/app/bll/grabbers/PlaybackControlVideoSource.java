@@ -1,4 +1,4 @@
-package knu.app.bll.utils.grabbers;
+package knu.app.bll.grabbers;
 
 import knu.app.bll.events.EventModelListener;
 import org.bytedeco.javacv.Frame;

@@ -6,7 +6,7 @@ import knu.app.bll.processors.detection.HogSvmDetector;
 import knu.app.bll.processors.detection.ObjectDetector;
 import knu.app.bll.processors.draw.DetectionRenderer;
 import knu.app.bll.processors.draw.ROIRenderer;
-import knu.app.bll.utils.grabbers.PlaybackControlFFmpegFrameGrabberVideoSource;
+import knu.app.bll.grabbers.PlaybackControlFFmpegFrameGrabberVideoSource;
 import knu.app.bll.utils.processors.DetectionResult;
 import knu.app.bll.utils.processors.hog.HogSvmDetectorConfig;
 import knu.app.bll.utils.processors.hog.HogSvmUtils;

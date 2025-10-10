@@ -5,6 +5,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import knu.app.bll.algorithms.IouComputer;
 import org.bytedeco.opencv.opencv_core.Rect;
 
 import java.io.FileReader;
@@ -91,7 +92,7 @@ public class MetricsEvaluator {
             if (matchedGT[j]) continue;
 
             Rect gt = gtBoxes.get(j);
-            double iou = Utils.computeIoU(pred, gt);
+            double iou = IouComputer.computeIoU(pred, gt);
 
             if (iou >= iouThreshold && iou > bestIoU) {
                 bestIoU = iou;
