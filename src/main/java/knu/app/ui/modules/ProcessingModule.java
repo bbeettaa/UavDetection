@@ -4,6 +4,7 @@ import imgui.ImGui;
 import imgui.flag.ImGuiTreeNodeFlags;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
+import knu.app.bll.processors.detection.YoloObjectDetector;
 import knu.app.bll.utils.ObjectTrackerFactory;
 import knu.app.bll.mot.TrackingManager;
 import knu.app.bll.processors.detection.HogSvmDetector;
@@ -81,7 +82,7 @@ public class ProcessingModule implements UIModule<MatWrapper> {
         detectors.add(new SIFTDetectorUI(new SIFTObjectDetector(templateImg)));
         detectors.add(new SURFDetectorUI(new SURFObjectDetector(templateImg)));
         detectors.add(new HogDetectorUI(new HogSvmDetector(HogSvmUtils.loadDescriptorFromFile(hogDescriptorFile), hogSvmDetectorConfig)));
-
+        detectors.add(new YoloDetectorUi(new YoloObjectDetector()));
 
         ObjectTrackerFactory trackerFactory = ObjectTrackerFactory.getInstance();
         trackers.add(new KalmanTrackerUI(new KalmanObjectTracker()));
@@ -205,7 +206,9 @@ public class ProcessingModule implements UIModule<MatWrapper> {
 
         if (drawDetections.get() && detectionResult != null) {
             if (!detectionResult.getRects().isEmpty()) {
-                renderers.get(selectedDetectorRendererIndex.get()).render(mat, detectionResult.getRects(), detectionResult.getScores(), true);
+                renderers.get(selectedDetectorRendererIndex.get())
+                    .render(mat, detectionResult.getRects(), detectionResult.getScores()
+                        ,detectionResult.getNames(), true);
             }
         }
 

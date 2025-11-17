@@ -60,6 +60,10 @@ public abstract class RendererUI {
         renderer.render(mat, trackedObjects, renderScores, scalar, thickness.get(), lineType.get());
     }
 
+    public void render(Mat mat, List<Rect> trackedObjects, List<Double> scores, List<String> names, boolean renderScores) {
+        renderer.render(mat, trackedObjects, names, scores,true, scalar, thickness.get(), lineType.get());
+    }
+
 
 
     public DetectionRenderer getRenderer() {

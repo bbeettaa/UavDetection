@@ -5,9 +5,7 @@ import knu.app.bll.utils.LocalizationManager;
 
 public class RoiRendererUI extends RendererUI {
 
-
     public RoiRendererUI() {
         super(new ROIRenderer(), LocalizationManager.tr("processor.draw.type.roi"));
     }
-
 }

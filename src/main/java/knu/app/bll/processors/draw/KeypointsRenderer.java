@@ -91,6 +91,23 @@ public class KeypointsRenderer implements DetectionRenderer {
         }
     }
 
+    @Override
+    public void render(Mat frame, List<Rect> rects, List<String> names) {
+
+    }
+
+    @Override
+    public void render(Mat frame, List<Rect> rects, List<String> names, List<Double> scores,
+        boolean renderScores) {
+
+    }
+
+    @Override
+    public void render(Mat frame, List<Rect> rects, List<String> names, List<Double> scores,
+        boolean renderScores, Scalar color, int thick, int type) {
+
+    }
+
 
     @Override
     public Scalar getScalar() {

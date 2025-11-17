@@ -13,6 +13,8 @@ public class ROIRenderer implements DetectionRenderer {
     private int thick = 2;
     private int type = LINE_8;
 
+    double fontScale = 0.65;
+
     @Override
     public void render(Mat frame, List<Point2f> result) {
         render(frame, result, scalar, thick, type);
@@ -95,6 +97,83 @@ public class ROIRenderer implements DetectionRenderer {
         }
     }
 
+    @Override
+    public void render(Mat frame, List<Rect> rects, List<String> names) {
+        render(frame, rects, names, List.of(), false, scalar, thick, type);
+    }
+
+    @Override
+    public void render(Mat frame, List<Rect> rects, List<String> names, List<Double> scores,
+        boolean renderScores) {
+        render(frame, rects, names, scores, renderScores, scalar, thick, type);
+    }
+
+    @Override
+    public void render(Mat frame, List<Rect> rects, List<String> names, List<Double> scores,
+        boolean renderScores, Scalar color, int thick, int type) {
+
+        if (rects == null || rects.isEmpty()) return;
+
+        if (renderScores && (scores == null || scores.size() < rects.size())) {
+            renderScores = false;
+        }
+
+        for (int i = 0; i < rects.size(); i++) {
+
+            Rect r = rects.get(i);
+
+            // 1) РИСУЕМ ROI
+            rectangle(frame, r, color, thick, type, 0);
+
+            // 2) Формируем текст
+            String name = (names != null && i < names.size() && names.get(i) != null)
+                ? names.get(i) : "";
+
+            String text = name;
+
+            if (renderScores) {
+                text = String.format("%s %.2f", name, scores.get(i));
+            }
+
+            if (text.isEmpty()) continue;
+
+            int fontFace = FONT_HERSHEY_SIMPLEX;
+            int textThickness = Math.max(1, thick);
+
+            int[] baseLine = new int[1];
+            Size textSize = getTextSize(text, fontFace, fontScale, textThickness, baseLine);
+
+            // Координаты текста по умолчанию — сверху над квадратом
+            int textX = r.x();
+            int textY = r.y() - 5;
+
+            // Если текст выше, чем верх кадра — переносим вниз
+            if (textY - textSize.height() - baseLine[0] < 0) {
+                textY = r.y() + r.height() + textSize.height() + 5;
+            }
+
+            // Фон
+            Point bgTL = new Point(textX, textY - textSize.height() - baseLine[0]);
+            Point bgBR = new Point(textX + textSize.width(), textY + baseLine[0]);
+
+            rectangle(frame, bgTL, bgBR,
+                new Scalar(0, 0, 0, 255),
+                FILLED, type, 0);
+
+            // Текст — тень
+            putText(frame, text, new Point(textX, textY),
+                fontFace, fontScale,
+                new Scalar(0, 0, 0, 255),
+                textThickness + 1, type, false);
+
+            // Текст — основной
+            putText(frame, text, new Point(textX, textY),
+                fontFace,
+                fontScale,
+                color,
+                textThickness, type, false);
+        }
+    }
 
     public void setScalar(Scalar scalar) {
         this.scalar = scalar;

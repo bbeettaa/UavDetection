@@ -22,4 +22,18 @@ public interface DetectionRenderer {
 
     void render(Mat frame, List<TrackedObject> trackedObjects, boolean renderScores);
     void render(Mat frame, List<TrackedObject> trackedObjects, boolean renderScores, Scalar color, int thick, int type);
+
+
+
+
+
+    void render(Mat frame, List<Rect> rects, List<String> names);
+
+    /** Рисует bbox + имена + конфиденсы */
+    void render(Mat frame, List<Rect> rects, List<String> names, List<Double> scores,
+        boolean renderScores);
+
+    /** Версия с параметрами */
+    void render(Mat frame, List<Rect> rects, List<String> names, List<Double> scores,
+        boolean renderScores, Scalar color, int thick, int type);
 }
