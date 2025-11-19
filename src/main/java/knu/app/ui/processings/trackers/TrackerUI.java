@@ -1,7 +1,7 @@
 package knu.app.ui.processings.trackers;
 
 
-import knu.app.bll.processors.tracker.ObjectTracker;
+import knu.app.bll.processors.tracker.single.ObjectTracker;
 
 public interface TrackerUI {
     String getName();

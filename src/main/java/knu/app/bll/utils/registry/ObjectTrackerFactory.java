@@ -1,6 +1,6 @@
-package knu.app.bll.utils;
+package knu.app.bll.utils.registry;
 
-import knu.app.bll.processors.tracker.ObjectTracker;
+import knu.app.bll.processors.tracker.single.ObjectTracker;
 
 import java.util.HashMap;
 import java.util.Map;

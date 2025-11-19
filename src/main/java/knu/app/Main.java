@@ -9,6 +9,15 @@ import static org.bytedeco.opencv.global.opencv_imgcodecs.IMREAD_GRAYSCALE;
 import static org.bytedeco.opencv.global.opencv_imgcodecs.imread;
 
 public class Main {
+
+    public static final String YOLO_HOST = "localhost";
+    public static final int YOLO_PORT = 50051;
+
+    public static final String BYTETRACK_HOST = "localhost";
+    public static final int BYTETRACK_PORT = 50061;
+
+
+
     public static void main(String[] args) {
 //        String singleDescriptorFile = "src/main/resources/drone.jpg";
         String singleDescriptorFile = "src/main/resources/bss-holland-vector.jpg";

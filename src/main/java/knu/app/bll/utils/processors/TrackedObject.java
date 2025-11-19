@@ -1,6 +1,6 @@
 package knu.app.bll.utils.processors;
 
-import knu.app.bll.processors.tracker.ObjectTracker;
+import knu.app.bll.processors.tracker.single.ObjectTracker;
 import org.bytedeco.opencv.opencv_core.Rect;
 
 import java.util.ArrayList;

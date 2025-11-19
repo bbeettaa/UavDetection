@@ -1,6 +1,7 @@
 package knu.app.ui;
 
 import imgui.ImGui;
+import java.util.concurrent.CompletableFuture;
 import knu.app.ui.menu.MainMenuSection;
 import knu.app.ui.menu.MenuSection;
 import knu.app.ui.modules.UIModule;

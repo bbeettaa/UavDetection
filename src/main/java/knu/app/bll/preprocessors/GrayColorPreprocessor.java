@@ -14,9 +14,12 @@ public class GrayColorPreprocessor implements FramePreprocessor {
 
     @Override
     public Mat process(Mat input) {
-        cvtColor(input, gray, COLOR_BGR2GRAY);
-        // Back to BGR
-        cvtColor(gray, result, COLOR_GRAY2BGR);
-        return result;
+        if (input.empty()) {
+            return new Mat();  // Handle empty input
+        }
+        cvtColor(input, this.gray, COLOR_BGR2GRAY);
+        // Back to BGR (3-канальный grayscale для совместимости)
+        cvtColor(this.gray, this.result, COLOR_GRAY2BGR);
+        return this.result.clone();  // Return a copy to avoid caller modifying instance var
     }
-}
+    }

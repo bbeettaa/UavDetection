@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import com.diffblue.cover.annotations.ManagedByDiffblue;
 import com.diffblue.cover.annotations.MethodsUnderTest;
 import java.util.List;
-import knu.app.bll.processors.tracker.ObjectTracker;
+import knu.app.bll.processors.tracker.single.ObjectTracker;
 import knu.app.bll.utils.processors.TrackedObject.TrackState;
 import org.bytedeco.opencv.opencv_core.Rect;
 import org.junit.jupiter.api.Disabled;

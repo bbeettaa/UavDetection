@@ -3,6 +3,7 @@ package knu.app.bll.processors.tracker;
 import com.diffblue.cover.annotations.ManagedByDiffblue;
 import com.diffblue.cover.annotations.MethodsUnderTest;
 import java.util.List;
+import knu.app.bll.processors.tracker.single.OpticalFlowTracker;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Point2f;
 import org.bytedeco.opencv.opencv_core.Rect;

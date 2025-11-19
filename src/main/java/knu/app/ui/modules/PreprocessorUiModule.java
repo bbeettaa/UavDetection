@@ -4,9 +4,11 @@ import imgui.ImGui;
 import imgui.type.ImBoolean;
 import imgui.type.ImFloat;
 import imgui.type.ImInt;
+import java.util.concurrent.CompletableFuture;
 import knu.app.bll.preprocessors.*;
 import knu.app.bll.utils.LocalizationManager;
 import knu.app.bll.utils.MatWrapper;
+import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Size;
 
 import java.util.Arrays;
@@ -125,25 +127,30 @@ public class PreprocessorUiModule implements UIModule<MatWrapper> {
 
     @Override
     public MatWrapper execute(MatWrapper mat) {
-        if (sizerf.get()) sizer.process(mat.mat());
+        Mat m = mat.mat();
+        if (sizerf.get())
+            sizer.process(m);
 
-        if (grayscalef.get()) gray.process(mat.mat());
+        if (grayscalef.get())
+             m = gray.process(m);
 
         if (blurf.get()) {
             blur.setD(blurd.get());
             blur.setKernel(blurk.get());
-            blur.process(mat.mat());
+            m = blur.process(m);
         }
         if (cannyf.get()) {
             canny.setV(canny1.get());
             canny.setV1(canny2.get());
-            canny.process(mat.mat());
+            m =  canny.process(m);
         }
-        if (stabf.get())  stabilization.process(mat.mat());
+        if (stabf.get())
+            m = stabilization.process(m);
 
-        if (featuref.get())  featureBasedStabilizer.process(mat.mat());
+        if (featuref.get())
+            m = featureBasedStabilizer.process(m);
 
-        return mat;
+        return new MatWrapper(mat.frameIndex(), m);
 //        if (sizerf.get()) mat = sizer.process(mat.mat());
 //
 //        if (grayscalef.get()) mat = gray.process(mat);

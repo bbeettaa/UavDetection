@@ -1,5 +1,5 @@
 syntax = "proto3";
-
+//python -m grpc_tools.protoc -I. --python_out=vision/protogen --grpc_python_out=vision/protogen   proto/yolo.proto
 package yolo;
 
 option java_package = "com.example.yolo";

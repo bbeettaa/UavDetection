@@ -46,7 +46,7 @@ public class SIFTObjectDetector implements ObjectDetector {
         List<Utils.RectWithScore> rects= Utils.clusterToRects(matchedPoints, 50f);
         return new DetectionResult(
                 rects.stream().map(e->e.rect).toList(),
-                rects.stream().map(e->e.score).toList()
+                rects.stream().map(e->e.score).map(e->e/10).toList()
         );
     }
 

@@ -3,6 +3,7 @@ package knu.app.ui.modules;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
+import java.util.concurrent.CompletableFuture;
 import knu.app.bll.utils.LocalizationManager;
 import knu.app.bll.utils.Utils;
 import knu.app.bll.grabbers.PlaybackControlVideoSource;
@@ -115,9 +116,12 @@ public class PureVideoGrabber implements UIModule<Frame> {
         ImGui.sameLine();
         ImGui.inputInt(LocalizationManager.tr("video.attr.height"), height, 10, 100);
         ImGui.sameLine();
-        ImGui.inputInt(LocalizationManager.tr("video.attr.framerate"), framerate);
+      boolean bfr = ImGui.inputInt(LocalizationManager.tr("video.attr.framerate"), framerate);
         ImGui.popItemWidth();
         ImGui.endDisabled();
+
+        if(bfr)
+            reader.setFramerate(framerate.get());
     }
 
     private void play() {

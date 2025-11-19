@@ -1,4 +1,4 @@
-package knu.app.bll.processors.tracker;
+package knu.app.bll.processors.tracker.single;
 
 import knu.app.bll.algorithms.kalman.KalmanFilter;
 import knu.app.bll.algorithms.kalman.TransitionMatrixKalmanFilter;

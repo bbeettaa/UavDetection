@@ -28,4 +28,9 @@ public interface TrackingManager {
 
   void setBuffCapacity(int c);
 
+  void renderSettings();
+
+  String getName();
+
+  void renderTrackers();
 }

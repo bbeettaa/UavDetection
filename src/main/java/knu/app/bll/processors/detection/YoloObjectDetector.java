@@ -1,5 +1,7 @@
 package knu.app.bll.processors.detection;
 
+import static org.bytedeco.opencv.global.opencv_imgproc.resize;
+
 import com.example.yolo.BoundingBox;
 import com.example.yolo.ImageRequest;
 import com.example.yolo.ImageResponse;
@@ -13,34 +15,41 @@ import java.util.Collections;
 import java.util.List;
 import knu.app.bll.utils.processors.DetectionResult;
 import org.bytedeco.javacpp.BytePointer;
+import org.bytedeco.javacpp.IntPointer;
 import org.bytedeco.opencv.global.opencv_imgcodecs;
 import org.bytedeco.opencv.global.opencv_imgproc;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Rect;
+import org.bytedeco.opencv.opencv_core.Size;
+import org.opencv.core.MatOfInt;
 
 public class YoloObjectDetector implements ObjectDetector {
-
-  //  private static final Logger log = LogManager.getLogger(YoloObjectDetector.class);
-  private static final ManagedChannel channel;
-  private static final YoloServiceGrpc.YoloServiceBlockingStub stub;
-
-  static {
-    // Инициализация канала и stub один раз (для эффективности, не создавать каждый раз)
-    channel = ManagedChannelBuilder.forAddress("localhost", 50051)
-        .usePlaintext()
-        .build();
-    stub = YoloServiceGrpc.newBlockingStub(channel);
-  }
-
-  // Закрытие канала при завершении приложения (опционально, если нужно)
-  public static void shutdown() {
-//    channel.shutdown();
-  }
 
   private float confTh = 0.25F;
   private float iouTh = 0.25F;
   private boolean isAugment = false;
   private boolean isHalf = false;
+
+  private int widthResize = 640;
+  private int heightResize = 640;
+  private int jpegQuality = 85;
+  //  private static final Logger log = LogManager.getLogger(YoloObjectDetector.class);
+  private  final ManagedChannel channel;
+  private  final YoloServiceGrpc.YoloServiceBlockingStub stub;
+
+  public YoloObjectDetector(String host, int port) {
+    channel = ManagedChannelBuilder.forAddress(host, port)
+        .maxInboundMessageSize(10 * 1024 * 1024)
+        .usePlaintext()
+        .build();
+    stub = YoloServiceGrpc.newBlockingStub(channel);
+  }
+
+
+  // Закрытие канала при завершении приложения (опционально, если нужно)
+  public static void shutdown() {
+//    channel.shutdown();
+  }
 
   public void init(float confTh, float iouTh, boolean isAugment, boolean isHalf){
     this.confTh = confTh;
@@ -52,16 +61,6 @@ public class YoloObjectDetector implements ObjectDetector {
   @Override
   public DetectionResult detect(Mat frameGray) {
     try {
-      // Конвертируем grayscale Mat в байты (JPEG формат; YOLO сервер может ожидать color, но если grayscale - сервер обработает или конвертируйте в RGB если нужно)
-      // Если сервер ожидает RGB, добавьте конвертацию: opencv_imgproc.cvtColor(frameGray, frameRGB, opencv_imgproc.COLOR_GRAY2RGB);
-
-      ByteBuffer buffer = ByteBuffer.allocate(
-          (int) (frameGray.total() * frameGray.channels() * 3)); // грубая оценка
-      boolean ok = opencv_imgcodecs.imencode(".jpg", frameGray, buffer);
-      if (!ok) {
-        throw new RuntimeException("Failed to encode Mat to JPEG");
-      }
-
       byte[] imgBytes = matToJpegBytes(frameGray);
 
       // Создаём запрос
@@ -102,24 +101,27 @@ public class YoloObjectDetector implements ObjectDetector {
         detections.getNames().add(box.getClassName());
       }
 
-
       return detections;
     } catch (Exception e) {
 //      log.error("Error during YOLO detection: ", e);
       return new DetectionResult();  // Возврат пустого результата при ошибке
     }
   }
+
+
   private byte[] matToJpegBytes(Mat mat) {
-    Mat matColor = mat;
-    if (mat.channels() == 1) {
-      matColor = new Mat();
-      opencv_imgproc.cvtColor(mat, matColor, opencv_imgproc.COLOR_GRAY2BGR);
-    }
+    Mat matResized = new Mat();
+
+    resize(mat, matResized, new Size(widthResize, heightResize));
+
+    IntPointer jpegParams = new IntPointer(opencv_imgcodecs.IMWRITE_JPEG_QUALITY, jpegQuality);
 
     BytePointer buf = new BytePointer();
-    boolean ok = opencv_imgcodecs.imencode(".jpg", matColor, buf);
+    boolean ok = opencv_imgcodecs.imencode(".jpg", matResized, buf, jpegParams);
     if (!ok) {
-      if (matColor != mat) matColor.release();
+      if (matResized != mat) {
+        matResized.release();
+      }
       buf.deallocate();
       throw new RuntimeException("Failed to encode Mat to JPEG");
     }
@@ -127,10 +129,13 @@ public class YoloObjectDetector implements ObjectDetector {
     byte[] bytes = new byte[(int) buf.limit()];
     buf.get(bytes);
     buf.deallocate();
-    if (matColor != mat) matColor.release();
+    if (matResized != mat) {
+      matResized.release();
+    }
 
     return bytes;
   }
+
 
   public void setAugment(boolean augment) {
     isAugment = augment;
@@ -146,5 +151,30 @@ public class YoloObjectDetector implements ObjectDetector {
 
   public void setIouTh(float iouTh) {
     this.iouTh = iouTh;
+  }
+
+
+  public void setHeightResize(int heightResize) {
+    this.heightResize = heightResize;
+  }
+
+  public void setWidthResize(int widthResize) {
+    this.widthResize = widthResize;
+  }
+
+  public void setJpegQuality(int jpegQuality) {
+    this.jpegQuality = jpegQuality;
+  }
+
+  public int getJpegQuality() {
+    return jpegQuality;
+  }
+
+  public int getHeightResize() {
+    return heightResize;
+  }
+
+  public int getWidthResize() {
+    return widthResize;
   }
 }

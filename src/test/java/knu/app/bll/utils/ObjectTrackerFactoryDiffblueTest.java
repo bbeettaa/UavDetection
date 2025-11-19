@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import com.diffblue.cover.annotations.ManagedByDiffblue;
 import com.diffblue.cover.annotations.MethodsUnderTest;
 import java.util.function.Supplier;
+import knu.app.bll.utils.registry.ObjectTrackerFactory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -65,7 +66,7 @@ class ObjectTrackerFactoryDiffblueTest {
   @Tag("ContributionFromDiffblue")
   @ManagedByDiffblue
   @MethodsUnderTest({
-      "knu.app.bll.processors.tracker.ObjectTracker ObjectTrackerFactory.create(String)"
+      "knu.app.bll.processors.tracker.single.ObjectTracker ObjectTrackerFactory.create(String)"
   })
   void testCreate() {
     // Arrange, Act and Assert
