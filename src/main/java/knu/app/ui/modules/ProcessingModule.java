@@ -38,6 +38,7 @@ import knu.app.ui.processings.renders.CenterPointRendererUI;
 import knu.app.ui.processings.renders.FeaturedPointsRendererUI;
 import knu.app.ui.processings.renders.RendererUI;
 import knu.app.ui.processings.renders.RoiRendererUI;
+import knu.app.ui.processings.renders.TrajectoryRendererUI;
 import org.bytedeco.opencv.opencv_core.Mat;
 
 public class ProcessingModule implements UIModule<MatWrapper> {
@@ -55,9 +56,13 @@ public class ProcessingModule implements UIModule<MatWrapper> {
   private final ImBoolean drawDetections = new ImBoolean(true);
   //  private final List<TrackerUI> trackers = new ArrayList<>();
   private final ImBoolean drawTracking = new ImBoolean(true);
+  private final ImBoolean drawTrajectory = new ImBoolean(false);
+
   private final List<RendererUI> renderers = new ArrayList<>();
   private final ImInt selectedDetectorRendererIndex = new ImInt(2);
   private final ImInt selectedTrackerRendererIndex = new ImInt(1);
+
+  private final TrajectoryRendererUI trajectoryRender;
 
   private final ExecutorService processingExecutor = Executors.newFixedThreadPool(
       Math.max(2, Runtime.getRuntime().availableProcessors()));
@@ -68,14 +73,17 @@ public class ProcessingModule implements UIModule<MatWrapper> {
   private DetectionResult detectionResult = new DetectionResult();
   private String[] rendererNames;
   private MetricsEvaluator metrics;
+  private AnalyticsUIModule analyticsUIModule;
 
   public ProcessingModule(List<TrackingManager> trackingManagers, Mat templateImg,
       String hogDescriptorFile, HogSvmDetectorConfig hogSvmDetectorConfig,
-      MetricsEvaluator metrics) {
+      MetricsEvaluator metrics, AnalyticsUIModule analyticsUIModule, TrajectoryRendererUI trajectoryRender) {
     init(templateImg, hogDescriptorFile, hogSvmDetectorConfig);
     this.metrics = metrics;
     this.trackingManagers = trackingManagers;
     this.trackingManager = trackingManagers.get(selectedTrackerManager.get());
+    this.analyticsUIModule = analyticsUIModule;
+    this.trajectoryRender = trajectoryRender;
   }
 
   private static void imGuiSeparate() {
@@ -177,6 +185,7 @@ public class ProcessingModule implements UIModule<MatWrapper> {
         if (ImGui.radioButton(trackingManagers.get(i).getName(),
             (selectedTrackerManager.get() == i))) {
           trackingManager = trackingManagers.get(i);
+          selectedTrackerManager.set(i);
         }
       }
       ImGui.separator();
@@ -186,6 +195,7 @@ public class ProcessingModule implements UIModule<MatWrapper> {
     }
 
   }
+
 
   private void renderDrawingSettings() {
     if (ImGui.collapsingHeader(LocalizationManager.tr("processor.draw.name") + "##detection",
@@ -206,6 +216,14 @@ public class ProcessingModule implements UIModule<MatWrapper> {
       ImGui.combo(LocalizationManager.tr("processor.draw.choose") + "##" + "tracking",
           selectedTrackerRendererIndex, rendererNames, rendererNames.length);
       renderers.get(selectedTrackerRendererIndex.get()).renderSettings("track");
+      ImGui.endDisabled();
+
+      imGuiSeparate();
+
+      ImGui.checkbox(LocalizationManager.tr("processor.draw.trajectory.enable") + "##" + "trajectory",
+          drawTrajectory);
+      ImGui.beginDisabled(!drawTrajectory.get());
+      trajectoryRender.renderSettings("trajectory");
       ImGui.endDisabled();
     }
   }
@@ -235,11 +253,18 @@ public class ProcessingModule implements UIModule<MatWrapper> {
       }
     }
 
+    if (drawTrajectory.get()) {
+      if (trackedObjects != null) {
+        trajectoryRender.render(mat, trackedObjects, true);
+      }
+    }
+
 //        if(!detectionResult.getRects().isEmpty())
 //        metrics.evaluate(matWrapper.frameIndex(), detectionResult.getRects());
     if (trackedObjects != null) {
       metrics.evaluate(matWrapper.frameIndex(),
           trackedObjects.stream().map(TrackedObject::getRect).toList());
+      analyticsUIModule.execute(trackedObjects);
     }
 
     return matWrapper;

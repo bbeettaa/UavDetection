@@ -30,8 +30,8 @@ public class YoloObjectDetector implements ObjectDetector {
   private boolean isAugment = false;
   private boolean isHalf = false;
 
-  private int widthResize = 640;
-  private int heightResize = 640;
+  private int widthResize = 1920;
+  private int heightResize = 1080;
   private int jpegQuality = 85;
   //  private static final Logger log = LogManager.getLogger(YoloObjectDetector.class);
   private  final ManagedChannel channel;

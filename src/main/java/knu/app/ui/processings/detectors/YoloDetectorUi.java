@@ -59,7 +59,7 @@ public class YoloDetectorUi implements DetectorUI {
     if (ImGui.collapsingHeader(LocalizationManager.tr("processor.network.settings")+"##YOLODetectorUI",
         ImGuiTreeNodeFlags.DefaultOpen)){
       if(ImGui.sliderInt(LocalizationManager.tr(
-              "processor.network.settings.size") + "##YOLODetectorUI", jpegCompr.getData(), 0, 100)){
+              "processor.network.settings.jpeg.quality") + "##YOLODetectorUI", jpegCompr.getData(), 0, 100)){
         detector.setJpegQuality(jpegCompr.get());
       }
       if(ImGui.inputInt(LocalizationManager.tr("frame.width.name"), swidth, 5, 50)){

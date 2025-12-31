@@ -23,7 +23,7 @@ public class DeepSortTrackerUi implements TrackerUI {
 
   @Override
   public String getName() {
-    return LocalizationManager.tr("processor.tracker.deepsort");
+    return LocalizationManager.tr("processor.tracker.sort");
   }
 
   @Override
@@ -61,6 +61,6 @@ public class DeepSortTrackerUi implements TrackerUI {
 
   @Override
   public String getKey() {
-    return TrackerType.DEEPSORT.name();
+    return TrackerType.SORT.name();
   }
 }

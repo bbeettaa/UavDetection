@@ -30,6 +30,6 @@ public class MultiObjectTrackerFactory {
   }
 
   public enum TrackerType{
-    BYTETRACK, DEEPSORT;
+    BYTETRACK, SORT;
   }
 }

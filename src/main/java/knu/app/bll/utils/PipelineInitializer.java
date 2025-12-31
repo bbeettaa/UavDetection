@@ -2,14 +2,17 @@ package knu.app.bll.utils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.logging.Logger;
 import knu.app.Main;
 import knu.app.bll.algorithms.associative.AssociationAlgorithm;
 import knu.app.bll.algorithms.associative.HungarianIoUAssociationJGraphT;
+import knu.app.bll.algorithms.trajectory.TrajectoryManager;
 import knu.app.bll.buffers.BufferElement;
 import knu.app.bll.buffers.BufferableQueue;
 import knu.app.bll.buffers.OverwritingQueueBlockedFrameBuffer;
@@ -21,10 +24,11 @@ import knu.app.bll.mot.ImplementedTrackingManager;
 import knu.app.bll.mot.TrackingManager;
 import knu.app.bll.preprocessors.BlurPreprocessor;
 import knu.app.bll.preprocessors.CannyPreprocessor;
-import knu.app.bll.preprocessors.FeatureBasedStabilizer;
+import knu.app.bll.preprocessors.DbscanPreprocessor;
 import knu.app.bll.preprocessors.FrameSizerPreprocessor;
 import knu.app.bll.preprocessors.GrayColorPreprocessor;
-import knu.app.bll.preprocessors.StabilizationFramePreprocessor;
+import knu.app.bll.preprocessors.KMeansPreprocessor;
+import knu.app.bll.processors.draw.TrajectoryRenderer;
 import knu.app.bll.processors.tracker.multi.PythonImplementation;
 import knu.app.bll.processors.tracker.single.CSRTTracker;
 import knu.app.bll.processors.tracker.single.KalmanObjectTracker;
@@ -39,19 +43,23 @@ import knu.app.ui.MainMenuUI;
 import knu.app.ui.menu.MainMenuSection;
 import knu.app.ui.menu.StatisticMenuSection;
 import knu.app.ui.menu.ToggleMenuSection;
+import knu.app.ui.modules.AnalyticsUIModule;
+import knu.app.ui.modules.CurrentObjectsUIModule;
 import knu.app.ui.modules.MetricsUIModule;
+import knu.app.ui.modules.PipelineControlUI;
 import knu.app.ui.modules.PreprocessorUiModule;
 import knu.app.ui.modules.ProcessingModule;
 import knu.app.ui.modules.PureVideoGrabber;
 import knu.app.ui.modules.StatisticDisplayUI;
 import knu.app.ui.modules.UIModule;
 import knu.app.ui.modules.VideoRenderer;
+import knu.app.ui.modules.VideoSaverUIModule;
+import knu.app.ui.processings.renders.TrajectoryRendererUI;
 import knu.app.ui.processings.trackers.ByteTrackTrackerUi;
 import knu.app.ui.processings.trackers.DeepSortTrackerUi;
 import knu.app.ui.processings.trackers.TrackerUI;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.OpenCVFrameConverter;
-import org.bytedeco.opencv.global.opencv_core;
 import org.bytedeco.opencv.opencv_core.Mat;
 
 public class PipelineInitializer {
@@ -59,19 +67,41 @@ public class PipelineInitializer {
   private static final Logger logger = Logger.getLogger(PipelineInitializer.class.getName());
 
   private final ExecutorService executor;
+  private final List<Future<?>> grabTasks = new ArrayList<>();
+  private final List<Future<?>> preprocessTasks = new ArrayList<>();
+  private final List<Future<?>> processingTasks = new ArrayList<>();
+  private final Map<String, Object> pipelineComponents = new HashMap<>();
   private final OpenCVFrameConverter.ToMat converter = new OpenCVFrameConverter.ToMat();
   private final List<UIModule<?>> uiModules = new ArrayList<>();
-  private StatisticDisplayUI stat = StatisticDisplayUI.getEntity();
-  private MetricsUIModule metrics = new MetricsUIModule();
+  private final StatisticDisplayUI stat = StatisticDisplayUI.getEntity();
+  private final MetricsUIModule metrics = new MetricsUIModule();
+  private final List<Future<?>> renderTasks = new ArrayList<>(); // Добавляем список для рендеринга
+  TrajectoryManager trajectoryManager = new TrajectoryManager(60);
+  private final CurrentObjectsUIModule currentObjectsUIModule = new CurrentObjectsUIModule(
+      trajectoryManager);
+  private volatile int currentGrabThreads = 1;
+  private volatile int currentPreprocessThreads = 1;
+  private volatile int currentProcessingThreads = 1;
+  private PureVideoGrabber videoGrabber;
+  private UIModule<MatWrapper> preprocessingUi;
+  private UIModule<MatWrapper> processingUi;
+  private UIModule<Frame> videoRenderer;
+  private VideoSaverUIModule videoSaverUIModule;
+
+  // Буферы
+  private BufferableQueue<MatWrapper> frameReaderBuffer;
+  private BufferableQueue<MatWrapper> processingBuffer;
+  private BufferableQueue<MatWrapper> frameWriterBuffer;
 
   public PipelineInitializer(int bufferCapacity, Mat singleDescriptor, String hogDescriptorFile,
       HogSvmDetectorConfig hogSvmDetectorConfig) {
     registrationFactoryTrackers();
 
-    int th1 = 4;
-    int th2 = Runtime.getRuntime().availableProcessors() - th1;
-    executor = Executors.newFixedThreadPool(th1);
-    opencv_core.setNumThreads(th2);
+//    int th1 = 8;
+//    int th2 = Runtime.getRuntime().availableProcessors() - th1;
+//    executor = Executors.newFixedThreadPool(th1);
+    executor = Executors.newCachedThreadPool();
+//    opencv_core.setNumThreads(th2);
 
     initModules(bufferCapacity, singleDescriptor, hogDescriptorFile, hogSvmDetectorConfig);
   }
@@ -85,9 +115,9 @@ public class PipelineInitializer {
     trackerFactory.registry(ObjectTrackerFactory.TrackerType.CSRT.name(), CSRTTracker::new);
     trackerFactory.registry(ObjectTrackerFactory.TrackerType.MIL.name(), MilTracker::new);
 
-//    MultiObjectTrackerFactory.getInstance()
-//        .registry(MultiObjectTrackerFactory.TrackerType.DEEPSORT.name(),
-//            new PythonImplementation(DeepSortHost, DeepSortPort));
+    MultiObjectTrackerFactory.getInstance()
+        .registry(MultiObjectTrackerFactory.TrackerType.SORT.name(),
+            new PythonImplementation(Main.SORT_HOST, Main.SORT_PORT));
     MultiObjectTrackerFactory.getInstance()
         .registry(MultiObjectTrackerFactory.TrackerType.BYTETRACK.name(),
             new PythonImplementation(Main.BYTETRACK_HOST, Main.BYTETRACK_PORT));
@@ -102,14 +132,22 @@ public class PipelineInitializer {
     BufferableQueue<MatWrapper> frameWriterBuffer = new OverwritingQueueBlockedFrameBuffer<>(
         bufferCapacity);
 
+    TrajectoryRenderer renderer = new TrajectoryRenderer(trajectoryManager);
+
 //        PlaybackControlVideoSource videoSource = new PlaybackFFmpegRawVideoSource();
     PlaybackControlVideoSource videoSource = new PlaybackControlFFmpegFrameGrabberVideoSource();
     PureVideoGrabber videoGrabber = new PureVideoGrabber(videoSource);
     VideoRenderer videoRenderer = new VideoRenderer();
+    PipelineControlUI pipelineControlUI = new PipelineControlUI(this);
+
+    AnalyticsUIModule analyticsUIModule = new AnalyticsUIModule(trajectoryManager);
+    TrajectoryRendererUI trajectoryRendererUI = new TrajectoryRendererUI(renderer);
 
     List<TrackerUI> trackers = new ArrayList<>();
-//    trackers.add(new DeepSortTrackerUi(MultiObjectTrackerFactory.getInstance().create(TrackerType.DEEPSORT.name())));
-    trackers.add(new ByteTrackTrackerUi(MultiObjectTrackerFactory.getInstance().create(TrackerType.BYTETRACK.name())));
+    trackers.add(new DeepSortTrackerUi(
+        MultiObjectTrackerFactory.getInstance().create(TrackerType.SORT.name())));
+    trackers.add(new ByteTrackTrackerUi(
+        MultiObjectTrackerFactory.getInstance().create(TrackerType.BYTETRACK.name())));
     TrackingManager multiTrackingManager = new ImplementedTrackingManager(
         LocalizationManager.tr("processor.tracker.manager.name2"), trackers);
 
@@ -119,19 +157,24 @@ public class PipelineInitializer {
     EventModelListener stopVideoListener = trackingManager::reset;
     videoSource.addListener(stopVideoListener);
 
+    this.videoSaverUIModule = new VideoSaverUIModule(stat);
+
     UIModule<MatWrapper> preprocessingUi = new PreprocessorUiModule(
         new GrayColorPreprocessor(),
         new BlurPreprocessor(),
         new CannyPreprocessor(),
         new FrameSizerPreprocessor(1920, 1080),
-        new StabilizationFramePreprocessor(),
-        new FeatureBasedStabilizer()
+//        new StabilizationFramePreprocessor(),
+//        new FeatureBasedStabilizer()
+        new KMeansPreprocessor(2),
+        new DbscanPreprocessor()
     );
 
     List<TrackingManager> trackingManagers = List.of(trackingManager, multiTrackingManager);
 
     UIModule<MatWrapper> processingUi = new ProcessingModule(trackingManagers, descriptorFile,
-        hogDescriptorFile, hogSvmDetectorConfig, metrics.getEvaluator());
+        hogDescriptorFile, hogSvmDetectorConfig, metrics.getEvaluator(), analyticsUIModule,
+        trajectoryRendererUI);
 
     createPipeline(videoGrabber, frameReaderBuffer, frameWriterBuffer, videoRenderer,
         preprocessingUi, processingBuffer, processingUi);
@@ -142,11 +185,15 @@ public class PipelineInitializer {
             new ToggleMenuSection(videoGrabber),
             new ToggleMenuSection(videoRenderer),
             new ToggleMenuSection(preprocessingUi),
-            new ToggleMenuSection(processingUi)
+            new ToggleMenuSection(processingUi),
+            new ToggleMenuSection(pipelineControlUI),
+            new ToggleMenuSection(analyticsUIModule),
+            new ToggleMenuSection(videoSaverUIModule)
         ),
         new MainMenuSection(LocalizationManager.tr("menu.section.statistics.name"),
             new StatisticMenuSection(stat),
-            new StatisticMenuSection(metrics)
+            new ToggleMenuSection(currentObjectsUIModule)
+//            new StatisticMenuSection(metrics)
         )
     );
 
@@ -157,9 +204,15 @@ public class PipelineInitializer {
     uiModules.add(videoGrabber);
     uiModules.add(mainMenu);
     uiModules.add(stat);
-    uiModules.add(metrics);
+//    uiModules.add(metrics);
+    uiModules.add(currentObjectsUIModule);
     uiModules.add(preprocessingUi);
     uiModules.add(processingUi);
+    uiModules.add(pipelineControlUI);
+    uiModules.add(analyticsUIModule);
+    uiModules.add(videoSaverUIModule);
+
+
   }
 
   private void createPipeline(PureVideoGrabber videoGrabber,
@@ -167,33 +220,47 @@ public class PipelineInitializer {
       UIModule<Frame> videoRenderer, UIModule<MatWrapper> preprocessingUi,
       BufferableQueue<MatWrapper> processingBuffer,
       UIModule<MatWrapper> processingUi) {
+    this.videoGrabber = videoGrabber;
+    this.preprocessingUi = preprocessingUi;
+    this.processingUi = processingUi;
+    this.videoRenderer = videoRenderer;
+    this.frameReaderBuffer = frameReaderBuffer;
+    this.processingBuffer = processingBuffer;
+    this.frameWriterBuffer = frameWriterBuffer;
 
     executor.submit(() -> {
       while (!Thread.interrupted()) {
-        MatWrapper m = grabFrameAndPut(videoGrabber);
-        preprocessFrameFromAndPut(m, preprocessingUi, frameReaderBuffer);
+        grabFrameAndPut(videoGrabber, frameReaderBuffer);
+//        MatWrapper m = grabFrameAndPut(videoGrabber);
+//        preprocessFrameFromAndPut(m, preprocessingUi, frameReaderBuffer);
       }
     });
+//
+//    executor.submit(() -> {
+//      while (!Thread.interrupted()) {
+//        preprocessFrameFromAndPut(frameReaderBuffer, preprocessingUi, processingBuffer);
+//      }
+//    });
 
-        executor.submit(() -> {
-            while (!Thread.interrupted()) {
-                preprocessFrameFromAndPut(frameReaderBuffer, preprocessingUi, processingBuffer);
-            }
-        });
+    //
+//    executor.submit(() -> {
+//      while (!Thread.interrupted()) {
+//        processFrameFromAndPut(frameWriterBuffer, processingBuffer, processingUi);
+//      }
+//    });
+    //
 
-    executor.submit(() -> {
-      while (!Thread.interrupted()) {
-        processFrameFromAndPut(frameWriterBuffer, processingBuffer, processingUi);
-      }
-    });
+//    executor.submit(() -> {
+//      while (!Thread.currentThread().isInterrupted()) {
+//        renderFrameFromBuffer(frameWriterBuffer, videoRenderer);
+//      }
+//    });
 
-    executor.submit(() -> {
-      while (!Thread.currentThread().isInterrupted()) {
-        renderFrameFromBuffer(frameWriterBuffer, videoRenderer);
-      }
-    });
+    startGrabThreads();
+    startPreprocessThreads();
+    startProcessingThreads();
+    startRenderThread();
   }
-
 
   private MatWrapper grabFrameAndPut(PureVideoGrabber videoGrabber) {
     try {
@@ -228,7 +295,6 @@ public class PipelineInitializer {
       BufferableQueue<MatWrapper> processingBuffer) {
     try {
       if (o != null) {
-        stat.setCurrentTime();
 //                MatWrapper f = o;
 //                f = preprocessingUi.execute(f);
         preprocessingUi.execute(o);
@@ -244,7 +310,6 @@ public class PipelineInitializer {
     try {
       BufferElement<MatWrapper> o = frameReaderBuffer.get();
       if (o != null) {
-        stat.setCurrentTime();
         MatWrapper f = o.getData();
         f = preprocessingUi.execute(f);
         processingBuffer.put(new BufferElement<>(f));
@@ -255,7 +320,8 @@ public class PipelineInitializer {
   }
 
   private void processFrameFromAndPut(BufferableQueue<MatWrapper> frameWriterBuffer,
-      BufferableQueue<MatWrapper> processingBuffer, UIModule<MatWrapper> processingUi) {
+      BufferableQueue<MatWrapper> processingBuffer, UIModule<MatWrapper> processingUi,
+      VideoSaverUIModule videoSaverUIModule) {
     try {
       BufferElement<MatWrapper> o = processingBuffer.get();
       if (o != null && o.getData() != null) {
@@ -271,9 +337,9 @@ public class PipelineInitializer {
 //                try {/
           originalMat.copyTo(f);
           MatWrapper result = processingUi.execute(copy);
+          videoSaverUIModule.execute(result);
           frameWriterBuffer.put(new BufferElement<>(result));
 //                } catch (Exception)
-
         }
 
       }
@@ -284,7 +350,6 @@ public class PipelineInitializer {
     }
   }
 
-
   private void renderFrameFromBuffer(BufferableQueue<MatWrapper> frameWriterBuffer,
       UIModule<Frame> videoRenderer) {
     try {
@@ -293,13 +358,154 @@ public class PipelineInitializer {
         Frame fr = converter.convert(element.getData().mat());
         videoRenderer.execute(fr);
         stat.processFPS();
+        stat.updateLatency();
       }
     } catch (Exception e) {
       logger.warning(Arrays.toString(e.getStackTrace()));
     }
   }
 
+// В классе PipelineInitializer.java
+
   public List<UIModule<?>> getUiModules() {
     return uiModules;
   }
+
+  /**
+   * Запуск потоков Захвата и первого Препроцессинга.
+   */
+  private synchronized void startGrabThreads() {
+    stopGrabThreads();
+
+    // 2. Запускаем новые задачи
+    for (int i = 0; i < currentGrabThreads; i++) {
+      grabTasks.add(executor.submit(() -> {
+        while (!Thread.interrupted()) {
+          stat.checkMs();
+//          MatWrapper m = grabFrameAndPut(this.videoGrabber);
+//          preprocessFrameFromAndPut(m, this.preprocessingUi, this.frameReaderBuffer);
+          preprocessFrameFromAndPut(this.frameReaderBuffer, this.preprocessingUi, this.processingBuffer );
+        }
+      }));
+    }
+    logger.info("Started Grab/Preprocess 1 tasks. Count: " + currentGrabThreads);
+  }
+
+  /**
+   * Запуск потоков Второго этапа Препроцессинга.
+   */
+  private synchronized void startPreprocessThreads() {
+    stopPreprocessThreads();
+
+    for (int i = 0; i < currentPreprocessThreads; i++) {
+      preprocessTasks.add(executor.submit(() -> {
+        while (!Thread.interrupted()) {
+          // Извлекаем из frameReaderBuffer, кладем в processingBuffer
+          preprocessFrameFromAndPut(this.frameReaderBuffer, this.preprocessingUi,
+              this.processingBuffer);
+        }
+      }));
+    }
+    logger.info("Started Preprocess 2 tasks. Count: " + currentPreprocessThreads);
+  }
+
+  /**
+   * Запуск потоков Обработки (YOLO/Трекинг).
+   */
+  private synchronized void startProcessingThreads() {
+    stopProcessingThreads();
+
+    for (int i = 0; i < currentProcessingThreads; i++) {
+      processingTasks.add(executor.submit(() -> {
+        while (!Thread.interrupted()) {
+          processFrameFromAndPut(this.frameWriterBuffer, this.processingBuffer, this.processingUi,
+              this.videoSaverUIModule);
+        }
+      }));
+    }
+    logger.info("Started Processing tasks. Count: " + currentProcessingThreads);
+  }
+
+  private synchronized void startRenderThread() {
+    // Обычно рендеринг не перезапускается, но для полноты:
+    // stopRenderThread();
+
+    renderTasks.add(executor.submit(() -> {
+      while (!Thread.currentThread().isInterrupted()) {
+        renderFrameFromBuffer(this.frameWriterBuffer, this.videoRenderer);
+      }
+    }));
+    logger.info("Started Render thread. Count: 1");
+  }
+
+
+  private synchronized void stopGrabThreads() {
+    for (Future<?> task : grabTasks) {
+      // Отменяем задачу, прерывая поток, в котором она выполняется
+      task.cancel(true);
+    }
+    grabTasks.clear();
+    logger.info("Stopped all grab/preprocess 1 tasks. Tasks cleared: " + grabTasks.isEmpty());
+  }
+
+  private synchronized void stopPreprocessThreads() {
+    for (Future<?> task : preprocessTasks) {
+      // Отменяем задачу
+      task.cancel(true);
+    }
+    preprocessTasks.clear();
+    logger.info("Stopped all preprocess 2 tasks. Tasks cleared: " + preprocessTasks.isEmpty());
+  }
+
+  private synchronized void stopProcessingThreads() {
+    for (Future<?> task : processingTasks) {
+      // Отменяем задачу
+      task.cancel(true);
+    }
+    processingTasks.clear();
+    logger.info("Stopped all processing tasks. Tasks cleared: " + processingTasks.isEmpty());
+  }
+
+  private synchronized void stopRenderThread() {
+    for (Future<?> task : renderTasks) {
+      task.cancel(true);
+    }
+    renderTasks.clear();
+    logger.info("Stopped render thread. Tasks cleared: " + renderTasks.isEmpty());
+  }
+
+  public int getGrabThreadCount() {
+    return currentGrabThreads;
+  }
+
+  public synchronized void setGrabThreadCount(int newCount) {
+    if (newCount > 0 && newCount != currentGrabThreads) {
+      currentGrabThreads = newCount;
+      startGrabThreads(); // Перезапуск с новым количеством
+    }
+  }
+
+  public int getPreprocessThreadCount() {
+    return currentPreprocessThreads;
+  }
+
+  public synchronized void setPreprocessThreadCount(int newCount) {
+    if (newCount > 0 && newCount != currentPreprocessThreads) {
+      currentPreprocessThreads = newCount;
+      startPreprocessThreads(); // Перезапуск с новым количеством
+    }
+  }
+
+  public int getProcessingThreadCount() {
+    return currentProcessingThreads;
+  }
+
+  public synchronized void setProcessingThreadCount(int newCount) {
+    if (newCount > 0 && newCount != currentProcessingThreads) {
+      currentProcessingThreads = newCount;
+      startProcessingThreads(); // Перезапуск с новым количеством
+    }
+  }
+
+
 }

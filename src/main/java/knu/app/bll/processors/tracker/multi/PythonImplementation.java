@@ -105,15 +105,15 @@ public class PythonImplementation implements MultiObjectTracker {
 
 
   private byte[] matToJpegBytes(Mat mat) {
-    Mat resize = new Mat();
+//    Mat resize = new Mat();
 
-    opencv_imgproc.resize(mat, resize,
-        new org.bytedeco.opencv.opencv_core.Size(640, 640));
+//    opencv_imgproc.resize(mat, resize,
+//        new org.bytedeco.opencv.opencv_core.Size(640, 640));
 
     IntPointer jpegParams = new IntPointer(opencv_imgcodecs.IMWRITE_JPEG_QUALITY, 100);
 
     BytePointer buf = new BytePointer();
-    boolean ok = opencv_imgcodecs.imencode(".jpg", resize, buf, jpegParams);
+    boolean ok = opencv_imgcodecs.imencode(".jpg", mat, buf, jpegParams);
     if (!ok) {
       buf.deallocate();
       throw new RuntimeException("Failed to encode Mat to JPEG");
