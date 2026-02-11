@@ -23,7 +23,7 @@ public class SIFTObjectDetector implements ObjectDetector {
     }
 
     public void init(int nfeatures, int nOctaves, double contrastThreshold, double edgeThreshold, double sigma) {
-        this.sift = SIFT.create(nfeatures, nOctaves, contrastThreshold, edgeThreshold, sigma);
+        this.sift = SIFT.create(nfeatures, nOctaves, contrastThreshold, edgeThreshold, sigma, false);
         this.matcher = BFMatcher.create(NORM_L2, true);
         this.templateDescriptors = new Mat();
         if (sift != null) {

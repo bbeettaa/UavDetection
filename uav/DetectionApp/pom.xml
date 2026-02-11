@@ -5,8 +5,10 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>org.example</groupId>
-  <artifactId>UavDetection</artifactId>
+  <artifactId>DetectionApp</artifactId>
   <version>1.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
 
   <properties>
     <maven.compiler.source>21</maven.compiler.source>
@@ -15,8 +17,9 @@
     <lwjgl.version>3.3.6</lwjgl.version>
     <imgui.java.version>1.86.6</imgui.java.version>
 
-    <grpc.version>1.62.2</grpc.version>
-    <protobuf.version>3.25.5</protobuf.version>
+    <grpc.version>1.79.0</grpc.version>
+<!--    <protobuf.version>3.25.5</protobuf.version>-->
+    <protobuf.version>4.33.5</protobuf.version>
   </properties>
 
   <dependencyManagement>
@@ -37,16 +40,31 @@
       <artifactId>ffmpeg</artifactId>
       <version>0.8.0</version>
     </dependency>
+
     <dependency>
       <groupId>org.bytedeco</groupId>
-      <artifactId>javacv-platform</artifactId>
-      <version>1.5.9</version>
+      <artifactId>javacv</artifactId>
+      <version>1.5.12</version>
+      <scope>compile</scope>
+    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>org.bytedeco</groupId>-->
+<!--      <artifactId>opencv-platform</artifactId>-->
+<!--      <version>4.11.0-1.5.12</version>-->
+<!--      <scope>compile</scope>-->
+<!--    </dependency>-->
+    <dependency>
+      <groupId>org.bytedeco</groupId>
+      <artifactId>opencv</artifactId>
+      <version>4.11.0-1.5.12</version>
     </dependency>
     <dependency>
       <groupId>org.bytedeco</groupId>
-      <artifactId>opencv-platform</artifactId>
-      <version>4.5.5-1.5.7</version>
+      <artifactId>opencv</artifactId>
+      <version>4.11.0-1.5.12</version>
+      <classifier>linux-x86_64</classifier>
     </dependency>
+
     <dependency>
       <groupId>org.jgrapht</groupId>
       <artifactId>jgrapht-core</artifactId>
@@ -70,11 +88,11 @@
       <groupId>org.lwjgl</groupId>
       <artifactId>lwjgl-opengl</artifactId>
     </dependency>
-    <dependency>
-      <groupId>org.lwjgl</groupId>
-      <artifactId>lwjgl</artifactId>
-      <classifier>natives-windows</classifier>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>org.lwjgl</groupId>-->
+<!--      <artifactId>lwjgl</artifactId>-->
+<!--      <classifier>natives-windows</classifier>-->
+<!--    </dependency>-->
     <dependency>
       <groupId>org.lwjgl</groupId>
       <artifactId>lwjgl-glfw</artifactId>
@@ -188,9 +206,9 @@
         <artifactId>protobuf-maven-plugin</artifactId>
         <version>0.6.1</version>
         <configuration>
-          <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
+          <protocArtifact>com.google.protobuf:protoc:33.1.0:exe:${os.detected.classifier}</protocArtifact>
           <pluginId>grpc-java</pluginId>
-          <pluginArtifact>io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:${os.detected.classifier}</pluginArtifact>
+          <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.62.2:exe:${os.detected.classifier}</pluginArtifact>
         </configuration>
         <executions>
           <execution>
@@ -214,8 +232,9 @@
             </goals>
             <configuration>
               <sources>
-                <source>${project.build.directory}/generated-sources/protobuf/java</source>
-                <source>${project.build.directory}/generated-sources/protobuf/grpc-java</source>
+<!--                <source>${project.build.directory}/generated-sources/protobuf/java</source>-->
+<!--                <source>${project.build.directory}/generated-sources/protobuf/grpc-java</source>-->
+                <source>src/generated/java</source>
               </sources>
             </configuration>
           </execution>
@@ -231,7 +250,7 @@
             <path>
               <groupId>org.projectlombok</groupId>
               <artifactId>lombok</artifactId>
-              <version>${lombok.version}</version>
+                <version>1.18.42</version>
             </path>
           </annotationProcessorPaths>
         </configuration>

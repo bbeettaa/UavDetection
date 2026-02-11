@@ -1,6 +1,5 @@
 package knu.app.bll.utils.processors;
 
-import com.example.yolo.BoundingBox;
 import java.util.LinkedList;
 import java.util.List;
 import org.bytedeco.opencv.opencv_core.Rect;
