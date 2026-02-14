@@ -23,11 +23,13 @@ public class Main {
 
     public static void main(String[] args) {
 //        String singleDescriptorFile = "src/main/resources/drone.jpg";
-        String singleDescriptorFile = "src/main/resources/bss-holland-vector.jpg";
+        System.out.println("Working dir: " + System.getProperty("user.dir"));
+
+        String singleDescriptorFile = "uav/DetectionApp/src/main/resources/bss-holland-vector.jpg";
         Mat singleDescriptor = imread(singleDescriptorFile, IMREAD_GRAYSCALE);
 
         HogSvmDetectorConfig hogSvmDetectorConfig = HogSvmDetectorConfig.withDefaultConfig();
-        String hogDescriptor = "src/main/resources/HOGDescriptorEsp.Big";
+        String hogDescriptor = "uav/DetectionApp/src/main/resources/HOGDescriptorEsp.Big";
 
         PipelineInitializer initializer = new PipelineInitializer(1, singleDescriptor, hogDescriptor, hogSvmDetectorConfig);
         VideoProcessingUI ui = new VideoProcessingUI(initializer.getUiModules());

@@ -17,7 +17,6 @@ import knu.app.bll.utils.registry.MultiObjectTrackerFactory.TrackerType;
 import knu.app.ui.processings.trackers.ByteTrackTrackerUi;
 import knu.app.ui.processings.trackers.DeepSortTrackerUi;
 import knu.app.ui.processings.trackers.TrackerUI;
-import org.apache.commons.lang3.NotImplementedException;
 import org.bytedeco.opencv.opencv_core.Mat;
 
 public class ImplementedTrackingManager implements TrackingManager{
@@ -63,17 +62,17 @@ public class ImplementedTrackingManager implements TrackingManager{
 
   @Override
   public AssociationAlgorithm getAssociationAlgorithm() {
-    throw new NotImplementedException();
+    throw new RuntimeException("Not Implemented");
   }
 
   @Override
   public NOutOfMConfirmation getConfirmationAlgorithm() {
-    throw new NotImplementedException();
+    throw new RuntimeException("Not Implemented");
   }
 
   @Override
   public MaxMissedDeletingAlgorithm getDeletingConfirmationAlgorithm() {
-    throw new NotImplementedException();
+    throw new RuntimeException("Not Implemented");
   }
 
   @Override

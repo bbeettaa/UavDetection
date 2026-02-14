@@ -35,35 +35,48 @@
   </dependencyManagement>
 
   <dependencies>
+<!--    <dependency>-->
+<!--      <groupId>net.bramp.ffmpeg</groupId>-->
+<!--      <artifactId>ffmpeg-</artifactId>-->
+<!--      <version>0.8.0</version>-->
+<!--    </dependency>-->
+
+    <!-- Source: https://mvnrepository.com/artifact/org.bytedeco/ffmpeg-platform -->
     <dependency>
-      <groupId>net.bramp.ffmpeg</groupId>
-      <artifactId>ffmpeg</artifactId>
-      <version>0.8.0</version>
+      <groupId>org.bytedeco</groupId>
+      <artifactId>ffmpeg-platform</artifactId>
+      <version>7.1.1-1.5.12</version>
+      <scope>compile</scope>
     </dependency>
 
+      <!-- Source: https://mvnrepository.com/artifact/com.google.code.gson/gson -->
+      <dependency>
+          <groupId>com.google.code.gson</groupId>
+          <artifactId>gson</artifactId>
+          <version>2.13.2</version>
+          <scope>compile</scope>
+      </dependency>
+
+    <!-- Source: https://mvnrepository.com/artifact/org.bytedeco/javacv -->
     <dependency>
       <groupId>org.bytedeco</groupId>
       <artifactId>javacv</artifactId>
       <version>1.5.12</version>
       <scope>compile</scope>
     </dependency>
+    <dependency>
+      <groupId>org.bytedeco</groupId>
+      <artifactId>opencv-platform</artifactId>
+      <version>4.11.0-1.5.12</version>
+      <scope>compile</scope>
+    </dependency>
+
 <!--    <dependency>-->
 <!--      <groupId>org.bytedeco</groupId>-->
-<!--      <artifactId>opencv-platform</artifactId>-->
+<!--      <artifactId>opencv</artifactId>-->
 <!--      <version>4.11.0-1.5.12</version>-->
-<!--      <scope>compile</scope>-->
+<!--      <classifier>linux-x86_64</classifier>-->
 <!--    </dependency>-->
-    <dependency>
-      <groupId>org.bytedeco</groupId>
-      <artifactId>opencv</artifactId>
-      <version>4.11.0-1.5.12</version>
-    </dependency>
-    <dependency>
-      <groupId>org.bytedeco</groupId>
-      <artifactId>opencv</artifactId>
-      <version>4.11.0-1.5.12</version>
-      <classifier>linux-x86_64</classifier>
-    </dependency>
 
     <dependency>
       <groupId>org.jgrapht</groupId>
