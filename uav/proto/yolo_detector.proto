@@ -1,0 +1,109 @@
+syntax = "proto3";
+
+package yolo;
+
+option java_multiple_files = true;
+option java_package = "knu.app.grpc.yolo";
+option java_outer_classname = "YoloProtos";
+
+import "google/protobuf/empty.proto";
+
+
+// ========================
+// YOLO CONFIG
+// ========================
+
+message YoloConfig {
+  string model_path = 1;        // путь к весам
+
+  int32 input_width = 2;
+  int32 input_height = 3;
+
+  float confidence_threshold = 4;
+  float iou_threshold = 5;
+  int32 max_detections = 6;
+  bool half_precision = 7;      // FP16
+
+  int32 max_fps = 8;            // ограничение входного потока
+}
+
+message SetConfigRequest {
+  string session_id = 1;
+  YoloConfig config = 2;
+}
+
+message GetConfigResponse {
+  YoloConfig config = 1;
+}
+
+// ========================
+// STREAM CONTROL
+// ========================
+
+message StartStreamingRequest {
+  string session_id = 1;
+}
+
+message StopStreamingRequest {
+  string session_id = 1;
+}
+
+message RestartConnectionRequest {
+  string session_id = 1;
+}
+
+message StreamStatus {
+  bool success = 1;
+  string message = 2;
+}
+
+
+// ========================
+// IMAGE STREAMING
+// ========================
+
+message ImageFrame {
+  string session_id = 1;
+  bytes image = 2;        // JPEG
+  int64 timestamp = 3;
+}
+
+
+// ========================
+// DETECTION RESULT
+// ========================
+
+message Detection {
+  string class_name = 1;
+  float confidence = 2;
+  float x = 3;
+  float y = 4;
+  float width = 5;
+  float height = 6;
+}
+
+message TrackingResult {
+  int64 timestamp = 1;
+  repeated Detection detections = 2;
+}
+
+
+// ========================
+// SERVICE
+// ========================
+
+service YoloDetectionService {
+
+  // --- CONFIG MANAGEMENT ---
+  rpc SetConfig(SetConfigRequest) returns (google.protobuf.Empty);
+  rpc GetConfig(google.protobuf.Empty) returns (GetConfigResponse);
+
+  // --- STREAM CONTROL ---
+  rpc StartStreaming(StartStreamingRequest) returns (StreamStatus);
+  rpc StopStreaming(StopStreamingRequest) returns (StreamStatus);
+  rpc RestartConnection(RestartConnectionRequest) returns (StreamStatus);
+
+  // --- IMAGE STREAM ---
+  // Клиент шлёт кадры, сервер стримит детекции
+  rpc StreamTrack(stream ImageFrame) returns (stream TrackingResult);
+}
