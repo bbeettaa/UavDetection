@@ -1,180 +1,170 @@
 package knu.app.bll.processors.detection;
 
-import static org.bytedeco.opencv.global.opencv_imgproc.resize;
-
-import com.example.yolo.BoundingBox;
-import com.example.yolo.ImageRequest;
-import com.example.yolo.ImageResponse;
-import com.example.yolo.YoloServiceGrpc;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import io.grpc.stub.StreamObserver;
 import knu.app.bll.utils.processors.DetectionResult;
+import knu.app.grpc.yolo.*;
+import knu.app.grpc.yolo.YoloProtos.*;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.IntPointer;
 import org.bytedeco.opencv.global.opencv_imgcodecs;
-import org.bytedeco.opencv.global.opencv_imgproc;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Rect;
-import org.bytedeco.opencv.opencv_core.Size;
-import org.opencv.core.MatOfInt;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class YoloObjectDetector implements ObjectDetector {
 
-  private float confTh = 0.25F;
-  private float iouTh = 0.25F;
-  private boolean isAugment = false;
-  private boolean isHalf = false;
+    private final ManagedChannel channel;
+    private final YoloDetectionServiceGrpc.YoloDetectionServiceStub asyncStub;
+    private final YoloDetectionServiceGrpc.YoloDetectionServiceBlockingStub blockingStub;
 
-  private int widthResize = 1920;
-  private int heightResize = 1080;
-  private int jpegQuality = 85;
-  //  private static final Logger log = LogManager.getLogger(YoloObjectDetector.class);
-  private  final ManagedChannel channel;
-  private  final YoloServiceGrpc.YoloServiceBlockingStub stub;
+    private StreamObserver<ImageFrame> requestObserver;
 
-  public YoloObjectDetector(String host, int port) {
-    channel = ManagedChannelBuilder.forAddress(host, port)
-        .maxInboundMessageSize(10 * 1024 * 1024)
-        .usePlaintext()
-        .build();
-    stub = YoloServiceGrpc.newBlockingStub(channel);
-  }
+    private final AtomicReference<DetectionResult> lastResult = new AtomicReference<>(new DetectionResult());
 
+    private String sessionId = "default";
 
-  // Закрытие канала при завершении приложения (опционально, если нужно)
-  public static void shutdown() {
-//    channel.shutdown();
-  }
+    private int jpegQuality = 85;
 
-  public void init(float confTh, float iouTh, boolean isAugment, boolean isHalf){
-    this.confTh = confTh;
-    this.iouTh = iouTh;
-    this.isAugment = isAugment;
-    this.isHalf = isHalf;
-  }
+    public YoloObjectDetector(String host, int port) {
+        channel = ManagedChannelBuilder.forAddress(host, port)
+                .maxInboundMessageSize(20 * 1024 * 1024)
+                .usePlaintext()
+                .build();
 
-  @Override
-  public DetectionResult detect(Mat frameGray) {
-    try {
-      byte[] imgBytes = matToJpegBytes(frameGray);
-
-      // Создаём запрос
-      ImageRequest request = ImageRequest.newBuilder()
-          .setImage(ByteString.copyFrom(imgBytes))
-          .setConfThreshold(confTh)
-          .setIouThreshold(iouTh)
-          .addAllClasses(Collections.emptyList())
-          .setMaxDet(100)
-          .setAugment(isAugment)
-          .setHalf(isHalf)
-          .build();
-
-      // Отправляем запрос и получаем ответ
-      ImageResponse response = stub.detectObjects(request);
-
-      // Конвертируем в DetectionResult (предполагаем, что DetectionResult имеет конструктор или билдер для списка detections)
-      // Адаптируйте под реальную структуру DetectionResult (e.g., List<Detection> с className, x, y, w, h, conf)
-      DetectionResult detections = new DetectionResult();
-
-      int frameWidth = frameGray.cols();
-      int frameHeight = frameGray.rows();
-
-
-      for (BoundingBox box : response.getBoxesList()) {
-        // Преобразуем нормализованные координаты в Rect (можно оставить нормализованными или масштабировать на width/height)
-        // Если нужно масштабирование, добавь widthImg и heightImg
-        int centerX = (int) (box.getX() * frameWidth);
-        int centerY = (int) (box.getY() * frameHeight);
-        int w = (int) (box.getWidth() * frameWidth);
-        int h = (int) (box.getHeight() * frameHeight);
-
-        int x = centerX - w / 2;
-        int y = centerY - h / 2;
-
-        detections.getRects().add(new Rect(x, y, w, h));
-        detections.getScores().add((double) box.getConfidence());
-        detections.getNames().add(box.getClassName());
-      }
-
-      return detections;
-    } catch (Exception e) {
-//      log.error("Error during YOLO detection: ", e);
-      return new DetectionResult();  // Возврат пустого результата при ошибке
-    }
-  }
-
-
-  private byte[] matToJpegBytes(Mat mat) {
-    Mat matResized = new Mat();
-
-    resize(mat, matResized, new Size(widthResize, heightResize));
-
-    IntPointer jpegParams = new IntPointer(opencv_imgcodecs.IMWRITE_JPEG_QUALITY, jpegQuality);
-
-    BytePointer buf = new BytePointer();
-    boolean ok = opencv_imgcodecs.imencode(".jpg", matResized, buf, jpegParams);
-    if (!ok) {
-      if (matResized != mat) {
-        matResized.release();
-      }
-      buf.deallocate();
-      throw new RuntimeException("Failed to encode Mat to JPEG");
+        asyncStub = YoloDetectionServiceGrpc.newStub(channel);
+        blockingStub = YoloDetectionServiceGrpc.newBlockingStub(channel);
     }
 
-    byte[] bytes = new byte[(int) buf.limit()];
-    buf.get(bytes);
-    buf.deallocate();
-    if (matResized != mat) {
-      matResized.release();
+    // =============================
+    // CONFIG
+    // =============================
+
+    public void sendConfig(YoloConfig config) {
+        blockingStub.setConfig(SetConfigRequest.newBuilder()
+                .setConfig(config)
+                .setSessionId(sessionId)
+                .build());
     }
 
-    return bytes;
-  }
+    public YoloConfig getConfig() {
+        return blockingStub.getConfig(com.google.protobuf.Empty.getDefaultInstance())
+                .getConfig();
+    }
 
+    // =============================
+    // STREAM CONTROL
+    // =============================
 
-  public void setAugment(boolean augment) {
-    isAugment = augment;
-  }
+    public void startStreaming() {
+        blockingStub.startStreaming(StartStreamingRequest.newBuilder()
+                .setSessionId(sessionId)
+                .build());
 
-  public void setConfTh(float confTh) {
-    this.confTh = confTh;
-  }
+        requestObserver = asyncStub.streamTrack(new StreamObserver<TrackingResult>() {
+            @Override
+            public void onNext(TrackingResult result) {
+                lastResult.set(convertResult(result));
+            }
 
-  public void setHalf(boolean half) {
-    isHalf = half;
-  }
+            @Override
+            public void onError(Throwable throwable) {
+                throwable.printStackTrace();
+            }
 
-  public void setIouTh(float iouTh) {
-    this.iouTh = iouTh;
-  }
+            @Override
+            public void onCompleted() {
+                System.out.println("Stream completed");
+            }
+        });
+    }
 
+    public void stopStreaming() {
+        if (requestObserver != null) {
+            requestObserver.onCompleted();
+        }
 
-  public void setHeightResize(int heightResize) {
-    this.heightResize = heightResize;
-  }
+        blockingStub.stopStreaming(
+                StopStreamingRequest.newBuilder()
+                        .setSessionId(sessionId)
+                        .build()
+        );
+    }
 
-  public void setWidthResize(int widthResize) {
-    this.widthResize = widthResize;
-  }
+    public void restartConnection() {
+        stopStreaming();
+        startStreaming();
+    }
 
-  public void setJpegQuality(int jpegQuality) {
-    this.jpegQuality = jpegQuality;
-  }
+    // =============================
+    // DETECT (STREAM MODE)
+    // =============================
 
-  public int getJpegQuality() {
-    return jpegQuality;
-  }
+    @Override
+    public DetectionResult detect(Mat frame) {
+        if (requestObserver == null) {
+            return new DetectionResult();
+        }
 
-  public int getHeightResize() {
-    return heightResize;
-  }
+        byte[] jpeg = matToJpegBytes(frame);
 
-  public int getWidthResize() {
-    return widthResize;
-  }
+        ImageFrame frameMsg = ImageFrame.newBuilder()
+                .setSessionId(sessionId)
+                .setImage(ByteString.copyFrom(jpeg))
+                .setTimestamp(System.currentTimeMillis())
+                .build();
+
+        requestObserver.onNext(frameMsg);
+
+        return lastResult.get();
+    }
+
+    // =============================
+    // UTILS
+    // =============================
+
+    private DetectionResult convertResult(TrackingResult response) {
+        List<Rect> rects = new LinkedList<>();
+        List<Double> scores = new LinkedList<>();
+        List<String> names = new LinkedList<>();
+
+        for (Detection d : response.getDetectionsList()) {
+            rects.add(new Rect(
+                    (int) d.getX(),
+                    (int) d.getY(),
+                    (int) d.getWidth(),
+                    (int) d.getHeight()
+            ));
+            scores.add((double) d.getConfidence());
+            names.add(d.getClassName());
+        }
+
+        return new DetectionResult(rects, scores, names);
+    }
+
+    private byte[] matToJpegBytes(Mat mat) {
+        BytePointer buf = new BytePointer();
+        IntPointer params = new IntPointer(opencv_imgcodecs.IMWRITE_JPEG_QUALITY, jpegQuality);
+
+        boolean ok = opencv_imgcodecs.imencode(".jpg", mat, buf, params);
+        if (!ok) {
+            buf.deallocate();
+            throw new RuntimeException("JPEG encode failed");
+        }
+
+        byte[] bytes = new byte[(int) buf.limit()];
+        buf.get(bytes);
+        buf.deallocate();
+
+        return bytes;
+    }
+
+    public void shutdown() {
+        channel.shutdown();
+    }
 }
