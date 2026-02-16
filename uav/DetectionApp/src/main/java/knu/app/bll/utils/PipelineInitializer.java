@@ -29,7 +29,6 @@ import knu.app.bll.preprocessors.FrameSizerPreprocessor;
 import knu.app.bll.preprocessors.GrayColorPreprocessor;
 import knu.app.bll.preprocessors.KMeansPreprocessor;
 import knu.app.bll.processors.draw.TrajectoryRenderer;
-import knu.app.bll.processors.tracker.multi.PythonImplementation;
 import knu.app.bll.processors.tracker.single.CSRTTracker;
 import knu.app.bll.processors.tracker.single.KalmanObjectTracker;
 import knu.app.bll.processors.tracker.single.MilTracker;
@@ -115,12 +114,12 @@ public class PipelineInitializer {
     trackerFactory.registry(ObjectTrackerFactory.TrackerType.CSRT.name(), CSRTTracker::new);
     trackerFactory.registry(ObjectTrackerFactory.TrackerType.MIL.name(), MilTracker::new);
 
-    MultiObjectTrackerFactory.getInstance()
-        .registry(MultiObjectTrackerFactory.TrackerType.SORT.name(),
-            new PythonImplementation(Main.SORT_HOST, Main.SORT_PORT));
-    MultiObjectTrackerFactory.getInstance()
-        .registry(MultiObjectTrackerFactory.TrackerType.BYTETRACK.name(),
-            new PythonImplementation(Main.BYTETRACK_HOST, Main.BYTETRACK_PORT));
+//    MultiObjectTrackerFactory.getInstance()
+//        .registry(MultiObjectTrackerFactory.TrackerType.SORT.name(),
+//            new PythonImplementation(Main.SORT_HOST, Main.SORT_PORT));
+//    MultiObjectTrackerFactory.getInstance()
+//        .registry(MultiObjectTrackerFactory.TrackerType.BYTETRACK.name(),
+//            new PythonImplementation(Main.BYTETRACK_HOST, Main.BYTETRACK_PORT));
   }
 
   private void initModules(int bufferCapacity, Mat descriptorFile, String hogDescriptorFile,
@@ -144,10 +143,11 @@ public class PipelineInitializer {
     TrajectoryRendererUI trajectoryRendererUI = new TrajectoryRendererUI(renderer);
 
     List<TrackerUI> trackers = new ArrayList<>();
-    trackers.add(new DeepSortTrackerUi(
-        MultiObjectTrackerFactory.getInstance().create(TrackerType.SORT.name())));
-    trackers.add(new ByteTrackTrackerUi(
-        MultiObjectTrackerFactory.getInstance().create(TrackerType.BYTETRACK.name())));
+//    trackers.add(new DeepSortTrackerUi(
+//        MultiObjectTrackerFactory.getInstance().create(TrackerType.SORT.name())));
+//    trackers.add(new ByteTrackTrackerUi(
+//        MultiObjectTrackerFactory.getInstance().create(TrackerType.BYTETRACK.name())));
+
     TrackingManager multiTrackingManager = new ImplementedTrackingManager(
         LocalizationManager.tr("processor.tracker.manager.name2"), trackers);
 
