@@ -1,5 +1,9 @@
 package knu.app.bll.utils;
 
+import org.bytedeco.javacpp.BytePointer;
+import org.bytedeco.javacpp.IntPointer;
+import org.bytedeco.opencv.global.opencv_imgcodecs;
+import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Point2f;
 import org.bytedeco.opencv.opencv_core.Rect;
 
@@ -145,4 +149,23 @@ public class Utils {
         return results;
     }
 
+
+
+
+    public static byte[] matToJpegBytes(Mat mat) {
+        BytePointer buf = new BytePointer();
+        IntPointer params = new IntPointer(opencv_imgcodecs.IMWRITE_JPEG_QUALITY, 85);
+
+        boolean ok = opencv_imgcodecs.imencode(".jpg", mat, buf, params);
+        if (!ok) {
+            buf.deallocate();
+            throw new RuntimeException("JPEG encode failed");
+        }
+
+        byte[] bytes = new byte[(int) buf.limit()];
+        buf.get(bytes);
+        buf.deallocate();
+
+        return bytes;
+    }
 }

@@ -10,14 +10,20 @@ import static org.bytedeco.opencv.global.opencv_imgcodecs.imread;
 
 public class Main {
 
-    public static final String YOLO_HOST = "localhost";
-    public static final int YOLO_PORT = 50051;
+    public static final String HOST = "localhost";
 
-    public static final String BYTETRACK_HOST = "localhost";
+    public static final int YOLO_PORT = 50051;
+    public static final int SSD_PORT = 50052;
     public static final int BYTETRACK_PORT = 50061;
 
-    public static final String SORT_HOST = "localhost";
-    public static final int SORT_PORT = 50062;
+    public static final int DEEPSORT_PORT = 50062;
+    public static final int SORT_PORT = 50063;
+    public static final int STRONGSORT_PORT = 50064;
+
+//    public static final String BYTETRACK_HOST = "localhost";
+
+//    public static final String SORT_HOST = "localhost";
+//    public static final int SORT_PORT = 50062;
 
 
 

@@ -17,6 +17,7 @@ import java.util.concurrent.TimeoutException;
 import knu.app.Main;
 import knu.app.bll.mot.TrackingManager;
 import knu.app.bll.processors.detection.*;
+//import knu.app.bll.processors.tracker.multi.ByteTrackGrpcTracker;
 import knu.app.bll.utils.LocalizationManager;
 import knu.app.bll.utils.MatWrapper;
 import knu.app.bll.utils.MetricsEvaluator;
@@ -30,6 +31,7 @@ import knu.app.ui.processings.renders.FeaturedPointsRendererUI;
 import knu.app.ui.processings.renders.RendererUI;
 import knu.app.ui.processings.renders.RoiRendererUI;
 import knu.app.ui.processings.renders.TrajectoryRendererUI;
+//import knu.app.ui.processings.trackers.ByteTrackTrackerUi;
 import org.bytedeco.opencv.opencv_core.Mat;
 
 public class ProcessingModule implements UIModule<MatWrapper> {
@@ -91,7 +93,9 @@ public class ProcessingModule implements UIModule<MatWrapper> {
     detectors.add(new HogDetectorUI(
         new HogSvmDetector(HogSvmUtils.loadDescriptorFromFile(hogDescriptorFile),
             hogSvmDetectorConfig)));
-    detectors.add(new YoloDetectorUi(new YoloObjectDetector(Main.YOLO_HOST, Main.YOLO_PORT)));
+
+    detectors.add(new YoloDetectorUi(new YoloObjectDetector(Main.HOST, Main.YOLO_PORT)));
+    detectors.add(new SsdDetectorUI(new SsdObjectDetector(Main.HOST, Main.SSD_PORT)));
 
 //    ObjectTrackerFactory trackerFactory = ObjectTrackerFactory.getInstance();
 //    trackers.add(new KalmanTrackerUI(new KalmanObjectTracker()));
@@ -100,7 +104,7 @@ public class ProcessingModule implements UIModule<MatWrapper> {
 //    trackers.add(new MILTrackerUI(new MilTracker()));
 
 //    trackers.add(new DeepSortTrackerUi(new PythonImplimentation(DeepSortHost, DeepSortPort)));
-//    trackers.add(new ByteTrackTrackerUi(new PythonImplimentation(ByteTrackerHost, ByteTrackerPort)));
+//    trackers.add(new ByteTrackTrackerUi(new ByteTrackGrpcTracker(Main.HOST, Main.BYTETRACK_PORT)));
 
     renderers.add(new FeaturedPointsRendererUI());
     renderers.add(new CenterPointRendererUI());

@@ -15,5 +15,8 @@ public interface MultiObjectTracker {
 
   int getBufferCapacity();
 
-  boolean init(float trackThresh, float highThresh, float matchThresh, int trackBuffer);
+  void clear();
+
+  boolean init();
+
 }

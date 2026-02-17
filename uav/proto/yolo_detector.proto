@@ -104,6 +104,5 @@ service YoloDetectionService {
   rpc RestartConnection(RestartConnectionRequest) returns (StreamStatus);
 
   // --- IMAGE STREAM ---
-  // Клиент шлёт кадры, сервер стримит детекции
   rpc StreamTrack(stream ImageFrame) returns (stream TrackingResult);
 }

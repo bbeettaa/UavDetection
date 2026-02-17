@@ -21,15 +21,7 @@ protoc \
 
 
 
-```bash 
-mkdir -p backend-services/src/generated
 
-python -m grpc_tools.protoc \
-  -I proto \
-  --python_out=pythonservice/src/generated \
-  --grpc_python_out=pythonservice/src/generated \
-  proto/*.proto
-```
 
 
 

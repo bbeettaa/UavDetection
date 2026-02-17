@@ -14,7 +14,7 @@ import knu.app.bll.utils.registry.MultiObjectTrackerFactory;
 import knu.app.bll.utils.processors.DetectionResult;
 import knu.app.bll.utils.processors.TrackedObject;
 import knu.app.bll.utils.registry.MultiObjectTrackerFactory.TrackerType;
-import knu.app.ui.processings.trackers.ByteTrackTrackerUi;
+//import knu.app.ui.processings.trackers.ByteTrackTrackerUi;
 import knu.app.ui.processings.trackers.DeepSortTrackerUi;
 import knu.app.ui.processings.trackers.TrackerUI;
 import org.bytedeco.opencv.opencv_core.Mat;
@@ -30,7 +30,6 @@ public class ImplementedTrackingManager implements TrackingManager{
 
   public ImplementedTrackingManager(String name, List<TrackerUI> trackers) {
     this.name = name;
-
     this.trackers=trackers;
   }
 
@@ -55,9 +54,9 @@ public class ImplementedTrackingManager implements TrackingManager{
 
   @Override
   public void reset() {
-//    if (tracker != null) {
-////      tracker.();
-//    }
+    if (tracker != null) {
+      tracker.clear();
+    }
   }
 
   @Override
@@ -120,6 +119,7 @@ public class ImplementedTrackingManager implements TrackingManager{
         for (int i = 0; i < trackers.size(); i++) {
           if (ImGui.radioButton(trackers.get(i).getName(), selectedTracker, i)) {
             setObjectTracker(trackers.get(i).getKey());
+            this.tracker.init();
           }
           if (i == selectedTracker.get()) {
             trackers.get(selectedTracker.get()).renderSettings();

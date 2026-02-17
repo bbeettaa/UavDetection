@@ -101,6 +101,17 @@ class ByteTrackerServicer(tracker_pb2_grpc.TrackerServiceServicer):
         return resp
 
 
+def reset(self):
+    self.tracker = DeepSort(
+        max_cosine_distance=self.config.max_cosine_distance,
+        max_age=self.config.max_age,
+        n_init=self.config.n_init,
+        max_iou_distance=0.7,
+        nn_budget=self.config.track_buffer,
+    )
+
+
+
 def serve(port = 50061):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))
     tracker_pb2_grpc.add_TrackerServiceServicer_to_server(ByteTrackerServicer(), server)
@@ -111,6 +122,3 @@ def serve(port = 50061):
         server.wait_for_termination()
     except KeyboardInterrupt:
         server.stop(0)
-
-if __name__ == "__main__":
-    serve()

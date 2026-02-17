@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package tracker.sort;
+
+import "google/protobuf/empty.proto";
+
+message TrackerConfig {
+    int32 lost_track_buffer = 1;
+    float track_activation_threshold = 2;
+    int32 minimum_consecutive_frames = 3;
+    float minimum_iou_threshold = 4;
+}
+
+message FrameRequest {
+    bytes image = 1;
+    repeated Detection detections = 2;
+}
+
+message Detection {
+    float x = 1;
+    float y = 2;
+    float width = 3;
+    float height = 4;
+    float confidence = 5;
+    string class_name = 6;
+}
+
+message TrackedObject {
+    string id = 1;
+    string class_name = 2;
+    int32 class_id = 3;
+    float confidence = 4;
+    float x = 5;
+    float y = 6;
+    float width = 7;
+    float height = 8;
+}
+
+message InitResponse {
+    bool success = 1;
+}
+
+message UpdateResponse {
+    repeated TrackedObject tracks = 1;
+}
+
+message BufferCapacityResponse {
+    int32 capacity = 1;
+}
+
+message SessionRequest {
+    string session_id = 1;
+}
+
+service SortService {
+    rpc Init(TrackerConfig) returns (InitResponse);
+    rpc Update(FrameRequest) returns (UpdateResponse);
+    rpc Close(SessionRequest) returns (google.protobuf.Empty);
+    rpc GetBufferCapacity(SessionRequest) returns (BufferCapacityResponse);
+    rpc Clear(SessionRequest) returns (google.protobuf.Empty);
+}

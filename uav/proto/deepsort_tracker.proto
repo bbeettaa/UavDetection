@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+package deepsort;
+
+option java_multiple_files = true;
+option java_package = "knu.app.grpc.deepsort";
+option java_outer_classname = "DeepSortProtos";
+
+import "google/protobuf/empty.proto";
+
+// -----------------------------
+// Конфигурация трекера
+// -----------------------------
+message TrackerConfig {
+ float max_iou_distance = 1;
+    int32 max_age = 2;
+    int32 n_init = 3;
+    float nms_max_overlap = 4;
+    float max_cosine_distance = 5;
+    int32 nn_budget = 6;
+
+    bool gating_only_position = 7;
+    string override_track_class = 8;
+
+    string embedder = 9;
+    bool half = 10;
+    bool bgr = 11;
+    bool embedder_gpu = 12;
+    string embedder_model_name = 13;
+    string embedder_wts = 14;
+
+    bool polygon = 15;
+    string today = 16;
+}
+
+// -----------------------------
+// Кадр и детекция
+// -----------------------------
+message Detection {
+  string class_name = 1;
+  int32 class_id = 2;
+  float confidence = 3;
+  float x = 4;
+  float y = 5;
+  float width = 6;
+  float height = 7;
+}
+
+message FrameRequest {
+  string session_id = 1;
+  int64 timestamp = 2;
+  bytes image = 3; // JPEG или PNG
+  repeated Detection detections = 4;
+}
+
+// -----------------------------
+// Трек объекта
+// -----------------------------
+message TrackedObject {
+  string id = 1;
+  string class_name = 2;
+  int32 class_id = 3;
+  float confidence = 4;
+  float x = 5;
+  float y = 6;
+  float width = 7;
+  float height = 8;
+}
+
+// -----------------------------
+// Ответы
+// -----------------------------
+message InitResponse {
+  bool success = 1;
+}
+
+message UpdateResponse {
+  repeated TrackedObject tracks = 1;
+}
+
+message BufferCapacityResponse {
+  int32 capacity = 1;
+}
+
+// -----------------------------
+// Сессия
+// -----------------------------
+message SessionRequest {
+  string session_id = 1;
+}
+
+// -----------------------------
+// Сервис DeepSORT
+// -----------------------------
+service DeepSortService {
+  rpc Init(TrackerConfig) returns (InitResponse);
+  rpc Update(FrameRequest) returns (UpdateResponse);
+  rpc Close(SessionRequest) returns (google.protobuf.Empty);
+  rpc GetBufferCapacity(SessionRequest) returns (BufferCapacityResponse);
+  rpc Clear(SessionRequest) returns (google.protobuf.Empty);
+}
