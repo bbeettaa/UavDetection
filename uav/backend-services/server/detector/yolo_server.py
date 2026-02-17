@@ -26,7 +26,7 @@ class SessionContext:
 # ==============================
 class YoloService(yolo_detector_pb2_grpc.YoloDetectionServiceServicer):
 
-    def __init__(self, model_path="server/detector/yolo/yolov8s.pt"):
+    def __init__(self, model_path="server/detector/yolo/yolov8n.pt"):
         self.sessions = defaultdict(SessionContext)
         self.global_config = yolo_detector_pb2.YoloConfig()
         # --- загружаем YOLO один раз ---
