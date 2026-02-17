@@ -4,20 +4,19 @@ import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Point2f;
 
 import static org.bytedeco.opencv.global.opencv_core.CV_32F;
-import static org.bytedeco.opencv.global.opencv_core.memopTypeToStr;
 
-public class TransitionMatrixKalmanFilter implements KalmanFilter {
+public class TransitionMatrixIKalmanFilter implements IKalmanFilter {
     private final org.bytedeco.opencv.opencv_video.KalmanFilter kalmanFilter;
     private final Mat state;
     private final Mat measurement;
 
     private final float GATING_THRESHOLD ;
 
-    public TransitionMatrixKalmanFilter(){
+    public TransitionMatrixIKalmanFilter(){
         this(16.0f);
     }
 
-    public TransitionMatrixKalmanFilter(float gatingThreshold) {
+    public TransitionMatrixIKalmanFilter(float gatingThreshold) {
         this.GATING_THRESHOLD = gatingThreshold;
         // 4 states: [x, y, vx, vy], 2 dimensions: [x, y]
         kalmanFilter = new org.bytedeco.opencv.opencv_video.KalmanFilter(4, 2, 0, CV_32F);

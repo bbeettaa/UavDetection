@@ -116,6 +116,8 @@ class DeepSortWrapper:
     def get_buffer_capacity(self):
         return self.config.max_age
 
+    def reset(self):
+        self.__init__(self.config)
 
 
 # ============================================================

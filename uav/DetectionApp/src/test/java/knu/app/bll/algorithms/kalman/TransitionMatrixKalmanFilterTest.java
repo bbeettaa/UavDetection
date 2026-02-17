@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
  */
 class TransitionMatrixKalmanFilterTest {
 
-  private KalmanFilter filter;
+  private IKalmanFilter filter;
 
   /**
    * Set up a new filter before each test.
@@ -33,7 +33,7 @@ class TransitionMatrixKalmanFilterTest {
    */
   @BeforeEach
   public void setUp() {
-    filter = new TransitionMatrixKalmanFilter();
+    filter = new TransitionMatrixIKalmanFilter();
     filter.reset(new Point2f(50, 50));
   }
 
@@ -129,7 +129,7 @@ class TransitionMatrixKalmanFilterTest {
     assertThrows(IllegalArgumentException.class, () -> filter.update(nanPoint));
 
     // after releaseResources, update() should throw IllegalStateException
-    KalmanFilter f2 = new TransitionMatrixKalmanFilter();
+    IKalmanFilter f2 = new TransitionMatrixIKalmanFilter();
     f2.reset(new Point2f(0, 0));
     f2.releaseResources();
     assertThrows(IllegalStateException.class, () -> f2.update(new Point2f(1, 1)));

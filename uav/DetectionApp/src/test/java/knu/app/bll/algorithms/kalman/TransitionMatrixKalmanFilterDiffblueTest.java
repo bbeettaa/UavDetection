@@ -12,9 +12,9 @@ import org.junit.jupiter.api.Test;
 class TransitionMatrixKalmanFilterDiffblueTest {
 
   /**
-   * Test {@link TransitionMatrixKalmanFilter#TransitionMatrixKalmanFilter()}.
+   * Test {@link TransitionMatrixIKalmanFilter#TransitionMatrixIKalmanFilter()}.
    *
-   * <p>Method under test: {@link TransitionMatrixKalmanFilter#TransitionMatrixKalmanFilter()}
+   * <p>Method under test: {@link TransitionMatrixIKalmanFilter#TransitionMatrixIKalmanFilter()}
    */
   @Test
   @DisplayName("Test new TransitionMatrixKalmanFilter()")
@@ -37,17 +37,17 @@ class TransitionMatrixKalmanFilterDiffblueTest {
 
     // Arrange and Act
     // TODO: Populate arranged inputs
-    TransitionMatrixKalmanFilter actualTransitionMatrixKalmanFilter =
-        new TransitionMatrixKalmanFilter();
+    TransitionMatrixIKalmanFilter actualTransitionMatrixKalmanFilter =
+        new TransitionMatrixIKalmanFilter();
 
     // Assert
     // TODO: Add assertions on result
   }
 
   /**
-   * Test {@link TransitionMatrixKalmanFilter#TransitionMatrixKalmanFilter(float)}.
+   * Test {@link TransitionMatrixIKalmanFilter#TransitionMatrixIKalmanFilter(float)}.
    *
-   * <p>Method under test: {@link TransitionMatrixKalmanFilter#TransitionMatrixKalmanFilter(float)}
+   * <p>Method under test: {@link TransitionMatrixIKalmanFilter#TransitionMatrixIKalmanFilter(float)}
    */
   @Test
   @DisplayName("Test new TransitionMatrixKalmanFilter(float)")
@@ -73,17 +73,17 @@ class TransitionMatrixKalmanFilterDiffblueTest {
     float gatingThreshold = 0.0f;
 
     // Act
-    TransitionMatrixKalmanFilter actualTransitionMatrixKalmanFilter =
-        new TransitionMatrixKalmanFilter(gatingThreshold);
+    TransitionMatrixIKalmanFilter actualTransitionMatrixKalmanFilter =
+        new TransitionMatrixIKalmanFilter(gatingThreshold);
 
     // Assert
     // TODO: Add assertions on result
   }
 
   /**
-   * Test {@link TransitionMatrixKalmanFilter#reset(Point2f)}.
+   * Test {@link TransitionMatrixIKalmanFilter#reset(Point2f)}.
    *
-   * <p>Method under test: {@link TransitionMatrixKalmanFilter#reset(Point2f)}
+   * <p>Method under test: {@link TransitionMatrixIKalmanFilter#reset(Point2f)}
    */
   @Test
   @DisplayName("Test reset(Point2f)")
@@ -105,7 +105,7 @@ class TransitionMatrixKalmanFilterDiffblueTest {
     //   See https://diff.blue/R012 to resolve this issue.
 
     // Arrange
-    TransitionMatrixKalmanFilter transitionMatrixKalmanFilter = new TransitionMatrixKalmanFilter();
+    TransitionMatrixIKalmanFilter transitionMatrixKalmanFilter = new TransitionMatrixIKalmanFilter();
 
     // Act
     transitionMatrixKalmanFilter.reset(new Point2f());
@@ -114,9 +114,9 @@ class TransitionMatrixKalmanFilterDiffblueTest {
   }
 
   /**
-   * Test {@link TransitionMatrixKalmanFilter#update(Point2f)}.
+   * Test {@link TransitionMatrixIKalmanFilter#update(Point2f)}.
    *
-   * <p>Method under test: {@link TransitionMatrixKalmanFilter#update(Point2f)}
+   * <p>Method under test: {@link TransitionMatrixIKalmanFilter#update(Point2f)}
    */
   @Test
   @DisplayName("Test update(Point2f)")
@@ -138,7 +138,7 @@ class TransitionMatrixKalmanFilterDiffblueTest {
     //   See https://diff.blue/R012 to resolve this issue.
 
     // Arrange
-    TransitionMatrixKalmanFilter transitionMatrixKalmanFilter = new TransitionMatrixKalmanFilter();
+    TransitionMatrixIKalmanFilter transitionMatrixKalmanFilter = new TransitionMatrixIKalmanFilter();
 
     // Act
     transitionMatrixKalmanFilter.update(new Point2f());
@@ -147,9 +147,9 @@ class TransitionMatrixKalmanFilterDiffblueTest {
   }
 
   /**
-   * Test {@link TransitionMatrixKalmanFilter#releaseResources()}.
+   * Test {@link TransitionMatrixIKalmanFilter#releaseResources()}.
    *
-   * <p>Method under test: {@link TransitionMatrixKalmanFilter#releaseResources()}
+   * <p>Method under test: {@link TransitionMatrixIKalmanFilter#releaseResources()}
    */
   @Test
   @DisplayName("Test releaseResources()")
@@ -171,15 +171,15 @@ class TransitionMatrixKalmanFilterDiffblueTest {
     //   See https://diff.blue/R012 to resolve this issue.
 
     // Arrange and Act
-    new TransitionMatrixKalmanFilter().releaseResources();
+    new TransitionMatrixIKalmanFilter().releaseResources();
 
     // Assert
   }
 
   /**
-   * Test {@link TransitionMatrixKalmanFilter#getState()}.
+   * Test {@link TransitionMatrixIKalmanFilter#getState()}.
    *
-   * <p>Method under test: {@link TransitionMatrixKalmanFilter#getState()}
+   * <p>Method under test: {@link TransitionMatrixIKalmanFilter#getState()}
    */
   @Test
   @DisplayName("Test getState()")
@@ -199,7 +199,7 @@ class TransitionMatrixKalmanFilterDiffblueTest {
 
     // Arrange
     // TODO: Populate arranged inputs
-    TransitionMatrixKalmanFilter transitionMatrixKalmanFilter = null;
+    TransitionMatrixIKalmanFilter transitionMatrixKalmanFilter = null;
 
     // Act
     Mat actualState = transitionMatrixKalmanFilter.getState();
@@ -209,13 +209,13 @@ class TransitionMatrixKalmanFilterDiffblueTest {
   }
 
   /**
-   * Test {@link TransitionMatrixKalmanFilter#setDt(float)}.
+   * Test {@link TransitionMatrixIKalmanFilter#setDt(float)}.
    *
    * <ul>
    *   <li>When zero.
    * </ul>
    *
-   * <p>Method under test: {@link TransitionMatrixKalmanFilter#setDt(float)}
+   * <p>Method under test: {@link TransitionMatrixIKalmanFilter#setDt(float)}
    */
   @Test
   @DisplayName("Test setDt(float); when zero")
@@ -237,7 +237,7 @@ class TransitionMatrixKalmanFilterDiffblueTest {
     //   See https://diff.blue/R012 to resolve this issue.
 
     // Arrange and Act
-    new TransitionMatrixKalmanFilter().setDt(0.0f);
+    new TransitionMatrixIKalmanFilter().setDt(0.0f);
 
     // Assert
   }

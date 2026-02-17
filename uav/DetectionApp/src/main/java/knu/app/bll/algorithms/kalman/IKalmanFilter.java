@@ -3,7 +3,7 @@ package knu.app.bll.algorithms.kalman;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Point2f;
 
-public interface KalmanFilter {
+public interface IKalmanFilter {
 
   void reset(Point2f initialPosition);
 

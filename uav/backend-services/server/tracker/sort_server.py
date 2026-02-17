@@ -1,12 +1,11 @@
 import threading
 from collections import defaultdict
-import numpy as np
-import cv2
-
-import supervision as sv
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 from proto import sort_tracker_pb2_grpc, sort_tracker_pb2
-from trackers import SORTTracker
+
+import numpy as np
+
+from server.tracker.sort.sort.sort import Sort
 
 
 # ============================================================
@@ -21,94 +20,44 @@ class TrackerSession:
         self.config = None
 
 
-# ============================================================
-# WRAPPER
-# ============================================================
 
 class SortWrapper:
 
     def __init__(self, config: sort_tracker_pb2.TrackerConfig):
         self.config = config
 
-        self.tracker = SORTTracker(
-            lost_track_buffer=int(config.lost_track_buffer),
-            track_activation_threshold=float(config.track_activation_threshold),
-            minimum_consecutive_frames=int(config.minimum_consecutive_frames),
-            minimum_iou_threshold=float(config.minimum_iou_threshold),
+        self.tracker = Sort(
+            max_age=int(config.lost_track_buffer),
+            min_hits=int(config.minimum_consecutive_frames),
+            iou_threshold=float(config.minimum_iou_threshold),
         )
-        self.tracks = []
-        self.tracks_dict = {}
 
-    def update(self, frame_bytes, detections_proto):
-
-        # --------------------------
-        # Преобразуем кадр
-        # --------------------------
-        np_arr = np.frombuffer(frame_bytes, np.uint8)
-        frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-        if frame is None:
-            return []
-
-        # --------------------------
-        # Преобразуем protobuf детекции в sv.Detections
-        # --------------------------
-        xyxy = []
-        confidences = []
-        class_ids = []
-
+    def update(self, detections_proto) -> list[sort_tracker_pb2.TrackedObject]:
+        detections = []
         for det in detections_proto:
-            x1 = det.x
-            y1 = det.y
-            x2 = det.x + det.width
-            y2 = det.y + det.height
-            xyxy.append([x1, y1, x2, y2])
-            confidences.append(det.confidence)
-            class_ids.append(int(det.class_id) if hasattr(det, "class_id") else 0)
+            x1 = float(det.x)
+            y1 = float(det.y)
+            x2 = x1 + float(det.width)
+            y2 = y1 + float(det.height)
+            score = float(det.confidence)
+            detections.append([x1, y1, x2, y2, score])
 
-        if len(xyxy) == 0:
-            detections_sv = sv.Detections(
-                xyxy=np.zeros((0, 4)),
-                confidence=np.array([]),
-                class_id=np.array([])
-            )
-        else:
-            detections_sv = sv.Detections(
-                xyxy=np.array(xyxy),
-                confidence=np.array(confidences),
-                class_id=np.array(class_ids)
-            )
+        detections_np = np.array(detections) if detections else np.empty((0, 5), dtype=np.float32)
 
-        # --------------------------
-        # Обновляем трекер
-        # --------------------------
-        new_tracks = self.tracker.update(detections_sv)
-        self.tracks = new_tracks  # теперь они хранятся между кадрами
+        # Обновляем трекер — получаем только активные треки
+        tracked = self.tracker.update(detections_np)  # np.array [N, 5]: x1,y1,x2,y2,id
 
-        for track in new_tracks:
-            track_id = int(track[4])
-            if track_id not in self.tracks_dict:
-                self.tracks_dict[track_id] = track  # добавляем новый трек
-            else:
-                self.tracks_dict[track_id] = track  # обновляем существующий
-        self.tracks = list(self.tracks_dict.values())
-
-        # --------------------------
-        # Конвертируем в protobuf
-        # --------------------------
         proto_tracks = []
-        for track in self.tracks:
-            bbox = track[0]
-            score = float(track[2])
-            class_name = str(track[3])
-            track_id = int(track[4])
-            x1, y1, x2, y2 = bbox
+        for row in tracked:
+            x1, y1, x2, y2, track_id = row
+            track_id = int(track_id)
 
             proto_tracks.append(
                 sort_tracker_pb2.TrackedObject(
                     id=str(track_id),
-                    class_name=class_name,
+                    class_name="object",
                     class_id=0,
-                    confidence=score,
+                    confidence=1.0,
                     x=float(x1),
                     y=float(y1),
                     width=float(x2 - x1),
@@ -121,15 +70,12 @@ class SortWrapper:
     def clear(self):
         self.__init__(self.config)
 
-    def get_buffer_capacity(self):
+    def reset(self):
+        self.__init__(self.config)
+
+    def get_buffer_capacity(self) -> int:
         return self.config.lost_track_buffer
 
-
-
-
-# ============================================================
-# gRPC SERVICE
-# ============================================================
 
 class SortService(sort_tracker_pb2_grpc.SortServiceServicer):
 
@@ -149,7 +95,7 @@ class SortService(sort_tracker_pb2_grpc.SortServiceServicer):
         with session.lock:
             if not session.active or session.tracker is None:
                 return sort_tracker_pb2.UpdateResponse(tracks=[])
-            tracks = session.tracker.update(request.image, request.detections)
+            tracks = session.tracker.update(request.detections)
             return sort_tracker_pb2.UpdateResponse(tracks=tracks)
 
     def Close(self, request, context):

@@ -1,7 +1,8 @@
 package knu.app.bll.processors.tracker.single;
 
-import knu.app.bll.algorithms.kalman.KalmanFilter;
-import knu.app.bll.algorithms.kalman.TransitionMatrixKalmanFilter;
+import knu.app.bll.algorithms.kalman.AccelerationKalmanFilter;
+import knu.app.bll.algorithms.kalman.IKalmanFilter;
+import knu.app.bll.algorithms.kalman.TransitionMatrixIKalmanFilter;
 import knu.app.bll.utils.Utils;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Point2f;
@@ -12,10 +13,11 @@ import java.util.List;
 
 public class KalmanObjectTracker implements ObjectTracker {
     private boolean isInitialized;
-    private final KalmanFilter transitionMatrixKalmanFilter;
+    private final IKalmanFilter transitionMatrixIKalmanFilter;
 
     public KalmanObjectTracker(float gatingTh) {
-        this.transitionMatrixKalmanFilter = new TransitionMatrixKalmanFilter(gatingTh);
+//        this.transitionMatrixIKalmanFilter = new TransitionMatrixIKalmanFilter(gatingTh);
+        this.transitionMatrixIKalmanFilter = new AccelerationKalmanFilter();
         this.isInitialized = false;
     }
 
@@ -29,7 +31,7 @@ public class KalmanObjectTracker implements ObjectTracker {
             return false;
         }
         Point2f center = Utils.rectCenter(Utils.pointsToRect(initialPoints));
-        transitionMatrixKalmanFilter.reset(center);
+        transitionMatrixIKalmanFilter.reset(center);
         isInitialized = true;
         return true;
     }
@@ -40,7 +42,7 @@ public class KalmanObjectTracker implements ObjectTracker {
             return false;
         }
         Point2f center = Utils.rectCenter(roi);
-        transitionMatrixKalmanFilter.reset(center);
+        transitionMatrixIKalmanFilter.reset(center);
         isInitialized = true;
         return true;
     }
@@ -54,14 +56,14 @@ public class KalmanObjectTracker implements ObjectTracker {
         Point2f meas = null;
         if (detectionPoints != null && !detectionPoints.isEmpty())
             meas = Utils.rectCenter(Utils.pointsToRect(detectionPoints));
-        Point2f state = transitionMatrixKalmanFilter.update(meas);
+        Point2f state = transitionMatrixIKalmanFilter.update(meas);
         result.add(state);
         return result;
     }
 
     @Override
     public void close() {
-        transitionMatrixKalmanFilter.releaseResources();
+        transitionMatrixIKalmanFilter.releaseResources();
         isInitialized = false;
     }
 

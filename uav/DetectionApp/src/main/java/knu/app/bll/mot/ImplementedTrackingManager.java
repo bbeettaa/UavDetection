@@ -43,7 +43,7 @@ public class ImplementedTrackingManager implements TrackingManager{
     List<TrackedObject> trackedObjects = tracker.update(mat, List.of(detResult));
     double durationMs = (double) (System.nanoTime() - startTime) / 1_000_000.0;
 
-    System.out.printf("Tracker update execution time: %.3f ms%n", durationMs);
+//    System.out.printf("Tracker update execution time: %.3f ms%n", durationMs);
     return trackedObjects != null ? trackedObjects : new ArrayList<>();
   }
 
