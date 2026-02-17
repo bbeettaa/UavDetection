@@ -104,10 +104,10 @@ public class YoloDetectorUi implements DetectorUI {
 
     @Override
     public DetectionResult detect(Mat mat) {
-        long startTime = System.nanoTime();
+//        long startTime = System.nanoTime();
         DetectionResult result = detector.detect(mat);
-        double durationMs = (double) (System.nanoTime() - startTime) / 1_000_000.0;
-        System.out.printf("Tracker update execution time: %.3f ms%n", durationMs);
+//        double durationMs = (double) (System.nanoTime() - startTime) / 1_000_000.0;
+//        System.out.printf("Tracker update execution time: %.3f ms%n", durationMs);
         return result;
     }
 
