@@ -26,12 +26,17 @@ class SessionContext:
 # ==============================
 class YoloService(yolo_detector_pb2_grpc.YoloDetectionServiceServicer):
 
-    def __init__(self, model_path="server/detector/yolo/yolov8n.pt"):
+    def __init__(self, model_path="server/detector/yolo/yolov8s.pt", device=None):
+        if device is None:
+            device = "cpu"
+        self.device = device
+
         self.sessions = defaultdict(SessionContext)
         self.global_config = yolo_detector_pb2.YoloConfig()
         # --- загружаем YOLO один раз ---
         self.model = YOLO(model_path)
-        print(f"YOLO model loaded from {model_path}")
+        self.model.to(self.device)
+        print(f"YOLO model loaded on {self.device} from {model_path}")
 
     # --------------------------
     # CONFIG
@@ -76,6 +81,13 @@ class YoloService(yolo_detector_pb2_grpc.YoloDetectionServiceServicer):
             session.active = True
         print(f"Streaming restarted: {request.session_id}")
         return yolo_detector_pb2.StreamStatus(success=True, message="Restarted")
+
+    def DetectSingle(self, request, context):
+        detections = self.run_inference(request.image, self.global_config)
+        return yolo_detector_pb2.TrackingResult(
+            timestamp=request.timestamp,
+            detections=detections
+        )
 
     # --------------------------
     # STREAM TRACK

@@ -2,6 +2,7 @@ import threading
 from concurrent import futures
 import grpc
 
+
 from proto import ssd_detector_pb2_grpc, yolo_detector_pb2_grpc, bytetrack_tracker_pb2_grpc, deepsort_tracker_pb2_grpc, \
     sort_tracker_pb2_grpc, strongsort_tracker_pb2_grpc
 from proto.deepsort_tracker_pb2_grpc import DeepSortService
@@ -19,13 +20,14 @@ MAX_MESSAGE_SIZE = 50 * 1024 * 1024
 
 
 
+
 # ============================================================
 # YOLO SERVER
 # ============================================================
 
 def start_yolo_server():
     server = grpc.server(
-        futures.ThreadPoolExecutor(max_workers=8),
+        futures.ThreadPoolExecutor(max_workers=12),
         options=[
             ("grpc.max_receive_message_length", MAX_MESSAGE_SIZE),
             ("grpc.max_send_message_length", MAX_MESSAGE_SIZE),
@@ -33,7 +35,7 @@ def start_yolo_server():
     )
 
     yolo_detector_pb2_grpc.add_YoloDetectionServiceServicer_to_server(
-        YoloService(),
+        YoloService(model_path="server/detector/yolo/yolov8n.pt"),
         server,
     )
 

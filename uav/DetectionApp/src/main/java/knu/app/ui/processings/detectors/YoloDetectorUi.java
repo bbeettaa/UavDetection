@@ -28,6 +28,7 @@ public class YoloDetectorUi implements DetectorUI {
     private final ImInt sheight;
 //    private final ImInt jpegCompr;
 
+
     public YoloDetectorUi(YoloObjectDetector detector) {
         this.detector = detector;
         this.swidth = new ImInt(detector.getConfig().getInputWidth());

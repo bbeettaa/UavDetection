@@ -105,4 +105,6 @@ service YoloDetectionService {
 
   // --- IMAGE STREAM ---
   rpc StreamTrack(stream ImageFrame) returns (stream TrackingResult);
+
+  rpc DetectSingle(ImageFrame) returns (TrackingResult);
 }

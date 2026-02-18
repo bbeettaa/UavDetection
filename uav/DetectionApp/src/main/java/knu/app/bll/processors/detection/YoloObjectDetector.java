@@ -15,6 +15,8 @@ import org.bytedeco.opencv.opencv_core.Rect;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class YoloObjectDetector implements ObjectDetector {
@@ -28,6 +30,12 @@ public class YoloObjectDetector implements ObjectDetector {
     private final AtomicReference<DetectionResult> lastResult = new AtomicReference<>(new DetectionResult());
 
     private String sessionId = "default";
+
+
+    private final Semaphore inflight = new Semaphore(4);
+    private final ExecutorService exec = Executors.newFixedThreadPool(12);
+//    private final ExecutorService exec = Executors.newCachedThreadPool();
+
 
     private int jpegQuality = 85;
 
@@ -107,6 +115,49 @@ public class YoloObjectDetector implements ObjectDetector {
 
     @Override
     public DetectionResult detect(Mat frame) {
+        return detectSync(frame);
+    }
+
+    public DetectionResult detectSync(Mat frame) {
+        if (!inflight.tryAcquire()) {
+            // все слоты заняты — fallback
+            return lastResult.get();
+        }
+
+        try {
+            byte[] jpeg = matToJpegBytes(frame);
+            ImageFrame frameMsg = ImageFrame.newBuilder()
+                    .setSessionId("default")
+                    .setImage(ByteString.copyFrom(jpeg))
+                    .setTimestamp(System.currentTimeMillis())
+                    .build();
+
+            // запускаем асинхронно в пуле, не ждём get()
+            exec.submit(() -> {
+                try {
+                    TrackingResult result = blockingStub
+                            .withDeadlineAfter(250, TimeUnit.MILLISECONDS)
+                            .detectSingle(frameMsg);
+
+                    lastResult.set(convertResult(result));
+                } catch (Exception ignored) {
+                    // fallback на последний результат
+                } finally {
+                    inflight.release();
+                }
+            });
+
+            // сразу возвращаем последний известный результат
+            return lastResult.get();
+
+        } catch (Exception e) {
+            inflight.release();
+            return lastResult.get();
+        }
+    }
+
+
+    private DetectionResult asyncDetect(Mat frame) {
         if (requestObserver == null) {
             return new DetectionResult();
         }
@@ -123,6 +174,7 @@ public class YoloObjectDetector implements ObjectDetector {
 
         return lastResult.get();
     }
+
 
     // =============================
     // UTILS

@@ -15,7 +15,6 @@ import org.bytedeco.opencv.opencv_core.Point;
 public class CurrentObjectsUIModule implements UIModule<Void> {
 
   private final ImBoolean isOpen = new ImBoolean(false);
-  // сюда прокидывай извне
   private final TrajectoryManager trajectoryManager;
   private boolean windowOpen = false;
   private int hoveredId = -1;   // ID объекта под мышью
@@ -79,7 +78,7 @@ public class CurrentObjectsUIModule implements UIModule<Void> {
       if (traj.isEmpty()) continue;
 
       Point last = traj.getLast();
-      ObjectMotionInfo motionInfo = ComputeMotion.computeMotion(id, traj );
+      ObjectMotionInfo motionInfo = trajectoryManager.getMotionInfo(id);
       String dir = motionInfo != null ? motionInfo.direction : "-";
       double speed = motionInfo != null ? motionInfo.speed : 0.0;
 

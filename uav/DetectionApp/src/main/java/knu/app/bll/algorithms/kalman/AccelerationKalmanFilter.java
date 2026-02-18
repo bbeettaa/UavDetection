@@ -28,10 +28,14 @@ public class AccelerationKalmanFilter implements IKalmanFilter {
 
         // Инициализация шума процесса Q_root [6x6]
         this.Q_root = Matrix.zero(6, 6);
-        double q_val = 0.1;
-        for (int i = 0; i < 6; i++) {
-            this.Q_root.set(i, i, q_val);
-        }
+//        double q_val = 0.1;
+//        for (int i = 0; i < 6; i++) {
+//            this.Q_root.set(i, i, q_val);
+//        }
+        for (int i = 0; i < 2; i++) this.Q_root.set(i, i, 0.01); // Позиция
+        for (int i = 2; i < 4; i++) this.Q_root.set(i, i, 0.1);  // Скорость
+        for (int i = 4; i < 6; i++) this.Q_root.set(i, i, 0.001); // Ускорение (очень мало!)
+
 
         // Инициализация шума измерения R_root [2x2]
         this.R_root = Matrix.zero(2, 2);
@@ -103,6 +107,14 @@ public class AccelerationKalmanFilter implements IKalmanFilter {
             Matrix[] corr = updatePhase(R_root, P_root, C, x, z);
             x = corr[0];
             P_root = corr[1];
+        }else {
+            // Увеличиваем ковариацию при пропаже измерений
+            // P_root = sqrt(P*P^T + Q) approx
+            for (int i = 0; i < P_root.rowCount(); i++) {
+                double val = P_root.get(i, i);
+                val *= 1.05;  // немного увеличиваем уверенность
+                P_root.set(i, i, val);
+            }
         }
 
         return new Point2f((float) x.get(0, 0), (float) x.get(1, 0));
@@ -193,7 +205,7 @@ public class AccelerationKalmanFilter implements IKalmanFilter {
         double current_time = start_time;
 
         for(int k=0; k<measurement_count; k++){
-            Matrix resPredict[] = predictPhase(f,current_time,P_root_km1_p,x_km1_p,Q_root);
+            Matrix resPredict[] = predictPhase(f,dt_between_measurements,P_root_km1_p,x_km1_p,Q_root);
             Matrix x_k_m = resPredict[0];
             Matrix P_root_km = resPredict[1];
 

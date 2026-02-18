@@ -52,12 +52,12 @@ public class HungarianIoUAssociationJGraphT implements AssociationAlgorithm {
         for (TrackedObject track : tracks) {
             for (Rect det : detRects) {
                 double iou = IouComputer.computeIoU(track.getRect(), det);
-                if (iou >= iouThreshold) {
+//                if (iou >= iouThreshold) {
                     DefaultWeightedEdge edge = graph.addEdge(track, det);
                     if (edge != null) {
-                        graph.setEdgeWeight(edge, 1.0 - iou);
+                        graph.setEdgeWeight(edge, iou);
                     }
-                }
+//                }
             }
         }
 

@@ -86,7 +86,6 @@ import org.bytedeco.opencv.opencv_core.Point;
     }
 
   private static String calculateDirection(double vx, double vy) {
-    // Порогове значення для визначення "значного" руху
     final double THRESHOLD = 0.01;
 
     String horizontal = "";
@@ -97,7 +96,7 @@ import org.bytedeco.opencv.opencv_core.Point;
     }
 
     if (Math.abs(vy) > THRESHOLD) {
-      vertical = (vy > 0) ? "DOWN" : "UP"; // Припускаємо, що вісь Y зростає вниз
+      vertical = (vy > 0) ? "DOWN" : "UP";
     }
 
     // Комбінуємо горизонтальний і вертикальний напрямки

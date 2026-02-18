@@ -105,7 +105,7 @@ public final class YoloProtos extends com.google.protobuf.GeneratedFile {
       "nce\030\002 \001(\002\022\t\n\001x\030\003 \001(\002\022\t\n\001y\030\004 \001(\002\022\r\n\005width" +
       "\030\005 \001(\002\022\016\n\006height\030\006 \001(\002\"H\n\016TrackingResult" +
       "\022\021\n\ttimestamp\030\001 \001(\003\022#\n\ndetections\030\002 \003(\0132" +
-      "\017.yolo.Detection2\231\003\n\024YoloDetectionServic" +
+      "\017.yolo.Detection2\321\003\n\024YoloDetectionServic" +
       "e\022;\n\tSetConfig\022\026.yolo.SetConfigRequest\032\026" +
       ".google.protobuf.Empty\022<\n\tGetConfig\022\026.go" +
       "ogle.protobuf.Empty\032\027.yolo.GetConfigResp" +
@@ -115,8 +115,10 @@ public final class YoloProtos extends com.google.protobuf.GeneratedFile {
       "olo.StreamStatus\022G\n\021RestartConnection\022\036." +
       "yolo.RestartConnectionRequest\032\022.yolo.Str" +
       "eamStatus\0229\n\013StreamTrack\022\020.yolo.ImageFra" +
-      "me\032\024.yolo.TrackingResult(\0010\001B!\n\021knu.app." +
-      "grpc.yoloB\nYoloProtosP\001b\006proto3"
+      "me\032\024.yolo.TrackingResult(\0010\001\0226\n\014DetectSi" +
+      "ngle\022\020.yolo.ImageFrame\032\024.yolo.TrackingRe" +
+      "sultB!\n\021knu.app.grpc.yoloB\nYoloProtosP\001b" +
+      "\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

@@ -27,22 +27,23 @@ public class TrajectoryRendererUI extends RendererUI {
   @Override
   public void renderSettings(String id) {
 
-    // --- 1. Настройка толщины линии траектории ---
     if (ImGui.sliderInt(LocalizationManager.tr("processor.draw.trajectory.thickness") + "##" + id + "_thick",
         thickness.getData(), 1, 10)) {
       renderer.setDefaultThickness(thickness.get());
     }
 
-    // --- 2. Настройка глубины истории траектории ---
     if (ImGui.sliderInt(LocalizationManager.tr("processor.draw.trajectory.history")  + "##" + id + "_history",
         historyLength.getData(), 10, 300)) {
       // Предполагаем, что у TrajectoryRenderer есть метод setMaxHistoryFrames(int)
       renderer.setMaxHistoryFrames(historyLength.get());
     }
 
-    // --- 3. Базовые настройки цвета/типа линии (наследуются от RendererUI) ---
     super.renderSettings("tr1");
   }
+
+    public TrajectoryRenderer getRenderer() {
+        return renderer;
+    }
 
   public TrajectoryManager getTrajectoryManager() {
     return renderer.getTrajectoryManager();

@@ -1,5 +1,6 @@
 package knu.app;
 
+import knu.app.bll.pipeline.Pipeline;
 import knu.app.bll.utils.PipelineInitializer;
 import knu.app.bll.utils.VideoProcessingUI;
 import knu.app.bll.utils.processors.hog.HogSvmDetectorConfig;
@@ -37,7 +38,8 @@ public class Main {
         HogSvmDetectorConfig hogSvmDetectorConfig = HogSvmDetectorConfig.withDefaultConfig();
         String hogDescriptor = "uav/DetectionApp/src/main/resources/HOGDescriptorEsp.Big";
 
-        PipelineInitializer initializer = new PipelineInitializer(1, singleDescriptor, hogDescriptor, hogSvmDetectorConfig);
+//        PipelineInitializer initializer = new PipelineInitializer(1, singleDescriptor, hogDescriptor, hogSvmDetectorConfig);        PipelineInitializer initializer = new PipelineInitializer(1, singleDescriptor, hogDescriptor, hogSvmDetectorConfig);
+        Pipeline initializer = new Pipeline(5, singleDescriptor, hogDescriptor, hogSvmDetectorConfig);
         VideoProcessingUI ui = new VideoProcessingUI(initializer.getUiModules());
         ui.run();
     }

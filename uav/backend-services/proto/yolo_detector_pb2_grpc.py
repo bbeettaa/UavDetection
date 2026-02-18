@@ -49,6 +49,11 @@ class YoloDetectionServiceStub(object):
                 request_serializer=proto_dot_yolo__detector__pb2.ImageFrame.SerializeToString,
                 response_deserializer=proto_dot_yolo__detector__pb2.TrackingResult.FromString,
                 )
+        self.DetectSingle = channel.unary_unary(
+                '/yolo.YoloDetectionService/DetectSingle',
+                request_serializer=proto_dot_yolo__detector__pb2.ImageFrame.SerializeToString,
+                response_deserializer=proto_dot_yolo__detector__pb2.TrackingResult.FromString,
+                )
 
 
 class YoloDetectionServiceServicer(object):
@@ -97,6 +102,12 @@ class YoloDetectionServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def DetectSingle(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_YoloDetectionServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -127,6 +138,11 @@ def add_YoloDetectionServiceServicer_to_server(servicer, server):
             ),
             'StreamTrack': grpc.stream_stream_rpc_method_handler(
                     servicer.StreamTrack,
+                    request_deserializer=proto_dot_yolo__detector__pb2.ImageFrame.FromString,
+                    response_serializer=proto_dot_yolo__detector__pb2.TrackingResult.SerializeToString,
+            ),
+            'DetectSingle': grpc.unary_unary_rpc_method_handler(
+                    servicer.DetectSingle,
                     request_deserializer=proto_dot_yolo__detector__pb2.ImageFrame.FromString,
                     response_serializer=proto_dot_yolo__detector__pb2.TrackingResult.SerializeToString,
             ),
@@ -241,6 +257,23 @@ class YoloDetectionService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.stream_stream(request_iterator, target, '/yolo.YoloDetectionService/StreamTrack',
+            proto_dot_yolo__detector__pb2.ImageFrame.SerializeToString,
+            proto_dot_yolo__detector__pb2.TrackingResult.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def DetectSingle(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/yolo.YoloDetectionService/DetectSingle',
             proto_dot_yolo__detector__pb2.ImageFrame.SerializeToString,
             proto_dot_yolo__detector__pb2.TrackingResult.FromString,
             options, channel_credentials,

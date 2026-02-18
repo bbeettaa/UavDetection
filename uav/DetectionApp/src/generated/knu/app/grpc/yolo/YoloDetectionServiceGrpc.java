@@ -198,6 +198,37 @@ public final class YoloDetectionServiceGrpc {
     return getStreamTrackMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<knu.app.grpc.yolo.ImageFrame,
+      knu.app.grpc.yolo.TrackingResult> getDetectSingleMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "DetectSingle",
+      requestType = knu.app.grpc.yolo.ImageFrame.class,
+      responseType = knu.app.grpc.yolo.TrackingResult.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<knu.app.grpc.yolo.ImageFrame,
+      knu.app.grpc.yolo.TrackingResult> getDetectSingleMethod() {
+    io.grpc.MethodDescriptor<knu.app.grpc.yolo.ImageFrame, knu.app.grpc.yolo.TrackingResult> getDetectSingleMethod;
+    if ((getDetectSingleMethod = YoloDetectionServiceGrpc.getDetectSingleMethod) == null) {
+      synchronized (YoloDetectionServiceGrpc.class) {
+        if ((getDetectSingleMethod = YoloDetectionServiceGrpc.getDetectSingleMethod) == null) {
+          YoloDetectionServiceGrpc.getDetectSingleMethod = getDetectSingleMethod =
+              io.grpc.MethodDescriptor.<knu.app.grpc.yolo.ImageFrame, knu.app.grpc.yolo.TrackingResult>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "DetectSingle"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  knu.app.grpc.yolo.ImageFrame.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  knu.app.grpc.yolo.TrackingResult.getDefaultInstance()))
+              .setSchemaDescriptor(new YoloDetectionServiceMethodDescriptorSupplier("DetectSingle"))
+              .build();
+        }
+      }
+    }
+    return getDetectSingleMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -311,6 +342,13 @@ public final class YoloDetectionServiceGrpc {
         io.grpc.stub.StreamObserver<knu.app.grpc.yolo.TrackingResult> responseObserver) {
       return io.grpc.stub.ServerCalls.asyncUnimplementedStreamingCall(getStreamTrackMethod(), responseObserver);
     }
+
+    /**
+     */
+    default void detectSingle(knu.app.grpc.yolo.ImageFrame request,
+        io.grpc.stub.StreamObserver<knu.app.grpc.yolo.TrackingResult> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDetectSingleMethod(), responseObserver);
+    }
   }
 
   /**
@@ -396,6 +434,14 @@ public final class YoloDetectionServiceGrpc {
       return io.grpc.stub.ClientCalls.asyncBidiStreamingCall(
           getChannel().newCall(getStreamTrackMethod(), getCallOptions()), responseObserver);
     }
+
+    /**
+     */
+    public void detectSingle(knu.app.grpc.yolo.ImageFrame request,
+        io.grpc.stub.StreamObserver<knu.app.grpc.yolo.TrackingResult> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getDetectSingleMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -466,6 +512,13 @@ public final class YoloDetectionServiceGrpc {
       return io.grpc.stub.ClientCalls.blockingBidiStreamingCall(
           getChannel(), getStreamTrackMethod(), getCallOptions());
     }
+
+    /**
+     */
+    public knu.app.grpc.yolo.TrackingResult detectSingle(knu.app.grpc.yolo.ImageFrame request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getDetectSingleMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -523,6 +576,13 @@ public final class YoloDetectionServiceGrpc {
     public knu.app.grpc.yolo.StreamStatus restartConnection(knu.app.grpc.yolo.RestartConnectionRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getRestartConnectionMethod(), getCallOptions(), request);
+    }
+
+    /**
+     */
+    public knu.app.grpc.yolo.TrackingResult detectSingle(knu.app.grpc.yolo.ImageFrame request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getDetectSingleMethod(), getCallOptions(), request);
     }
   }
 
@@ -587,6 +647,14 @@ public final class YoloDetectionServiceGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getRestartConnectionMethod(), getCallOptions()), request);
     }
+
+    /**
+     */
+    public com.google.common.util.concurrent.ListenableFuture<knu.app.grpc.yolo.TrackingResult> detectSingle(
+        knu.app.grpc.yolo.ImageFrame request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getDetectSingleMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_SET_CONFIG = 0;
@@ -594,7 +662,8 @@ public final class YoloDetectionServiceGrpc {
   private static final int METHODID_START_STREAMING = 2;
   private static final int METHODID_STOP_STREAMING = 3;
   private static final int METHODID_RESTART_CONNECTION = 4;
-  private static final int METHODID_STREAM_TRACK = 5;
+  private static final int METHODID_DETECT_SINGLE = 5;
+  private static final int METHODID_STREAM_TRACK = 6;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -632,6 +701,10 @@ public final class YoloDetectionServiceGrpc {
         case METHODID_RESTART_CONNECTION:
           serviceImpl.restartConnection((knu.app.grpc.yolo.RestartConnectionRequest) request,
               (io.grpc.stub.StreamObserver<knu.app.grpc.yolo.StreamStatus>) responseObserver);
+          break;
+        case METHODID_DETECT_SINGLE:
+          serviceImpl.detectSingle((knu.app.grpc.yolo.ImageFrame) request,
+              (io.grpc.stub.StreamObserver<knu.app.grpc.yolo.TrackingResult>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -696,6 +769,13 @@ public final class YoloDetectionServiceGrpc {
               knu.app.grpc.yolo.ImageFrame,
               knu.app.grpc.yolo.TrackingResult>(
                 service, METHODID_STREAM_TRACK)))
+        .addMethod(
+          getDetectSingleMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              knu.app.grpc.yolo.ImageFrame,
+              knu.app.grpc.yolo.TrackingResult>(
+                service, METHODID_DETECT_SINGLE)))
         .build();
   }
 
@@ -750,6 +830,7 @@ public final class YoloDetectionServiceGrpc {
               .addMethod(getStopStreamingMethod())
               .addMethod(getRestartConnectionMethod())
               .addMethod(getStreamTrackMethod())
+              .addMethod(getDetectSingleMethod())
               .build();
         }
       }
