@@ -7,6 +7,8 @@ import static org.bytedeco.opencv.global.opencv_imgproc.cvtColor;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import knu.app.bll.utils.MatWrapper;
 import knu.app.bll.utils.processors.DetectionResult;
 import knu.app.bll.utils.processors.hog.HogSvmDetectorConfig;
 import org.bytedeco.javacpp.DoublePointer;
@@ -30,9 +32,9 @@ public class HogSvmDetector implements ObjectDetector {
 
 
   @Override
-  public DetectionResult detect(Mat frame) {
+  public DetectionResult detect(MatWrapper matWrapper) {
     Mat gray = new Mat();
-    cvtColor(frame, gray, COLOR_BGR2GRAY);
+    cvtColor(matWrapper.mat, gray, COLOR_BGR2GRAY);
 
     RectVector detections = new RectVector();
     DoublePointer weights = new DoublePointer();

@@ -1,5 +1,6 @@
 package knu.app.bll.processors.detection;
 
+import knu.app.bll.utils.MatWrapper;
 import knu.app.bll.utils.Utils;
 import knu.app.bll.utils.processors.DetectionResult;
 import org.bytedeco.opencv.opencv_core.*;
@@ -37,10 +38,10 @@ public class SURFObjectDetector implements ObjectDetector {
     }
 
     @Override
-    public DetectionResult detect(Mat frameGray) {
+    public DetectionResult detect(MatWrapper matWrapper) {
         KeyPointVector keypoints = new KeyPointVector();
         Mat descriptors = new Mat();
-        surf.detectAndCompute(frameGray, new Mat(), keypoints, descriptors);
+        surf.detectAndCompute(matWrapper.mat, new Mat(), keypoints, descriptors);
 
         if (descriptors.empty()) return new DetectionResult();
 

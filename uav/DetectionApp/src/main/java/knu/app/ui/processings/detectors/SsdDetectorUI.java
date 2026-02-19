@@ -5,6 +5,7 @@ import imgui.type.ImFloat;
 import imgui.type.ImInt;
 import knu.app.bll.processors.detection.SsdObjectDetector;
 import knu.app.bll.utils.LocalizationManager;
+import knu.app.bll.utils.MatWrapper;
 import knu.app.bll.utils.processors.DetectionResult;
 import org.bytedeco.opencv.opencv_core.Mat;
 
@@ -61,8 +62,8 @@ public class SsdDetectorUI implements DetectorUI {
     }
 
     @Override
-    public DetectionResult detect(Mat mat)  {
-        return detector.detect(mat);
+    public DetectionResult detect(MatWrapper matWrapper)  {
+        return detector.detect(matWrapper);
     }
 
     @Override

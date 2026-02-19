@@ -5,6 +5,7 @@ import imgui.type.ImBoolean;
 import knu.app.bll.processors.detection.HogSvmDetector;
 import knu.app.bll.processors.detection.ObjectDetector;
 import knu.app.bll.utils.LocalizationManager;
+import knu.app.bll.utils.MatWrapper;
 import knu.app.bll.utils.processors.DetectionResult;
 import knu.app.bll.utils.processors.hog.HogSvmDetectorConfig;
 import org.bytedeco.opencv.opencv_core.Mat;
@@ -78,8 +79,8 @@ public class HogDetectorUI implements DetectorUI {
     }
 
     @Override
-    public DetectionResult detect(Mat mat) {
-        return hog.detect(mat);
+    public DetectionResult detect(MatWrapper matWrapper) {
+        return hog.detect(matWrapper);
     }
 
     @Override

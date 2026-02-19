@@ -119,11 +119,11 @@ public class VideoSaverUIModule implements UIModule<MatWrapper> {
   @Override
   public MatWrapper execute(MatWrapper record) {
     // Called for every processed frame in pipeline
-    if (record == null || record.mat() == null) return null;
+    if (record == null || record.mat == null) return null;
 
     if (recordingRequested.get()) {
       // clone mat to avoid race with renderer - push clone into queue
-      Mat copy = record.mat().clone();
+      Mat copy = record.mat.clone();
       boolean offered = queue.offer(copy);
       if (!offered) {
         // queue full -> drop oldest to make room

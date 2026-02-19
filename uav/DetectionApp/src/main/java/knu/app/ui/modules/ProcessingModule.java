@@ -192,8 +192,11 @@ public class ProcessingModule implements UIModule<MatWrapper> {
 
     @Override
     public MatWrapper execute(MatWrapper matWrapper) {
-        Mat mat = matWrapper.mat();
-        executeDetectors(mat);
+        Mat mat = matWrapper.mat;
+        if (useDetectors.get() && selectedDetector.get() >= 0 && selectedDetector.get() < detectors.size()) {
+            detectionResult = detectors.get(selectedDetector.get()).detect(matWrapper);
+        }
+
         List<TrackedObject> trackedObjects = null;
         if (useDetectors.get())
             trackedObjects = trackingManager.update(mat, detectionResult);
@@ -229,7 +232,7 @@ public class ProcessingModule implements UIModule<MatWrapper> {
         }
 
         if (trackedObjects != null) {
-            metrics.evaluate(matWrapper.frameIndex(),
+            metrics.evaluate(matWrapper.frameIndex,
                     trackedObjects.stream().map(TrackedObject::getRect).toList());
             analyticsUIModule.execute(trackedObjects);
         }
@@ -237,11 +240,8 @@ public class ProcessingModule implements UIModule<MatWrapper> {
         return matWrapper;
     }
 
-    private void executeDetectors(Mat mat) {
-        if (useDetectors.get() && selectedDetector.get() >= 0
-                && selectedDetector.get() < detectors.size()) {
-            detectionResult = detectors.get(selectedDetector.get()).detect(mat);
-        }
+    private void executeDetectors(MatWrapper matWrapper) {
+
     }
 
 

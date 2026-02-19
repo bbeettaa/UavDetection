@@ -1,22 +1,13 @@
 package knu.app.bll.pipeline;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.logging.Logger;
 
 import knu.app.Main;
 import knu.app.bll.algorithms.associative.AssociationAlgorithm;
 import knu.app.bll.algorithms.associative.HungarianIoUAssociationJGraphT;
 import knu.app.bll.algorithms.trajectory.TrajectoryManager;
-import knu.app.bll.buffers.BufferElement;
-import knu.app.bll.buffers.BufferableQueue;
-import knu.app.bll.buffers.OverwritingQueueBlockedFrameBuffer;
 import knu.app.bll.events.EventModelListener;
 import knu.app.bll.grabbers.PlaybackControlFFmpegFrameGrabberVideoSource;
 import knu.app.bll.grabbers.PlaybackControlVideoSource;
@@ -70,9 +61,17 @@ public class Pipeline {
 
     private static final Logger logger = Logger.getLogger(Pipeline.class.getName());
 
+    private volatile int currentGrabThreads = 1;
+
+    private volatile int currentPreprocessThreads = 16;
+
+    private volatile int currentProcessingThreads = 18;
+
     // Separate executors for different task types
     private final ExecutorService ioExecutor = Executors.newCachedThreadPool(); // For IO-heavy: grab, render, save
     private final ExecutorService cpuExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()); // For CPU-heavy: preprocess, processing
+    private final ExecutorService preprocessExec = Executors.newFixedThreadPool(currentPreprocessThreads);
+    private final ExecutorService pipelinePool = Executors.newFixedThreadPool(2);
 
     private final List<Future<?>> grabTasks = new ArrayList<>();
     private final List<Future<?>> preprocessTasks = new ArrayList<>();
@@ -85,20 +84,16 @@ public class Pipeline {
     private final MetricsUIModule metrics = new MetricsUIModule();
     TrajectoryManager trajectoryManager = new TrajectoryManager(60);
     private final CurrentObjectsUIModule currentObjectsUIModule = new CurrentObjectsUIModule(trajectoryManager);
-    private volatile int currentGrabThreads = 1; // IO-heavy, keep at 1 as source may not be thread-safe
-    private volatile int currentPreprocessThreads = Runtime.getRuntime().availableProcessors() / 2; // CPU-heavy, adjust based on cores
-    private volatile int currentProcessingThreads = 1; // CPU/network-heavy (gRPC), start with 1 to avoid server overload
+
     private PureVideoGrabber videoGrabber;
     private UIModule<MatWrapper> preprocessingUi;
     private UIModule<MatWrapper> processingUi;
     private UIModule<Frame> videoRenderer;
     private VideoSaverUIModule videoSaverUIModule;
 
-    // Buffers - use small capacity to reduce latency (e.g., 5 instead of large values)
-    // Large bufferCapacity can cause lag = bufferCapacity / FPS seconds
-    private BufferableQueue<MatWrapper> frameReaderBuffer;
-    private BufferableQueue<MatWrapper> processingBuffer;
-    private BufferableQueue<MatWrapper> frameWriterBuffer;
+    private Queue<MatWrapper> frameReaderBuffer;
+    private Queue<MatWrapper> processingBuffer;
+    private Queue<MatWrapper> frameWriterBuffer;
 
     public Pipeline(int bufferCapacity, Mat singleDescriptor, String hogDescriptorFile,
                     HogSvmDetectorConfig hogSvmDetectorConfig) {
@@ -136,9 +131,9 @@ public class Pipeline {
 
     private void initModules(int bufferCapacity, Mat singleDescriptor, String hogDescriptorFile,
                              HogSvmDetectorConfig hogSvmDetectorConfig) {
-        frameReaderBuffer = new OverwritingQueueBlockedFrameBuffer<>(bufferCapacity);
-        processingBuffer = new OverwritingQueueBlockedFrameBuffer<>(bufferCapacity);
-        frameWriterBuffer = new OverwritingQueueBlockedFrameBuffer<>(bufferCapacity);
+        frameReaderBuffer = new PriorityBlockingQueue<>(bufferCapacity);
+        processingBuffer = new PriorityBlockingQueue<>(bufferCapacity);
+        frameWriterBuffer = new PriorityBlockingQueue<>(bufferCapacity);
 
         TrajectoryRenderer renderer = new TrajectoryRenderer(trajectoryManager);
 
@@ -175,7 +170,7 @@ public class Pipeline {
                 new BlurPreprocessor(),
                 new CannyPreprocessor(),
                 new FrameSizerPreprocessor(1920, 1080),
-                new KMeansPreprocessor(2),
+                new KMeansPreprocessor(),
                 new DbscanPreprocessor()
         );
 
@@ -219,9 +214,9 @@ public class Pipeline {
     }
 
     private void createPipeline(PureVideoGrabber videoGrabber,
-                                BufferableQueue<MatWrapper> frameReaderBuffer, BufferableQueue<MatWrapper> frameWriterBuffer,
+                                Queue<MatWrapper> frameReaderBuffer, Queue<MatWrapper> frameWriterBuffer,
                                 UIModule<Frame> videoRenderer, UIModule<MatWrapper> preprocessingUi,
-                                BufferableQueue<MatWrapper> processingBuffer,
+                                Queue<MatWrapper> processingBuffer,
                                 UIModule<MatWrapper> processingUi) {
         this.videoGrabber = videoGrabber;
         this.preprocessingUi = preprocessingUi;
@@ -237,14 +232,14 @@ public class Pipeline {
         startRenderThread();
     }
 
-    private synchronized void grabAndPutToBuffer(BufferableQueue<MatWrapper> buffer) {
+    private synchronized void grabAndPutToBuffer(Queue<MatWrapper> buffer) {
         long start = System.currentTimeMillis();
         try {
             Frame frame = videoGrabber.execute(null);
             if (frame != null) {
                 MatWrapper matWrapper = new MatWrapper(videoGrabber.getCurrentFrameIndex(),
                         converter.convert(frame));
-                buffer.put(new BufferElement<>(matWrapper));
+                buffer.add((matWrapper));
             }
         } catch (Exception e) {
             logger.warning(Arrays.toString(e.getStackTrace()));
@@ -255,39 +250,77 @@ public class Pipeline {
         }
     }
 
-    private void preprocessFrameFromAndPut(BufferableQueue<MatWrapper> inputBuffer,
-                                           UIModule<MatWrapper> preprocessingUi, BufferableQueue<MatWrapper> outputBuffer) {
+    private void preprocessFrameFromAndPut(Queue<MatWrapper> inputBuffer,
+                                           UIModule<MatWrapper> preprocessingUi, Queue<MatWrapper> outputBuffer) {
         long start = System.currentTimeMillis();
         try {
-            BufferElement<MatWrapper> element = inputBuffer.get();
-            if (element != null) {
-                MatWrapper input = element.getData();
+            MatWrapper input = inputBuffer.poll();
+            if (input != null) {
                 MatWrapper output = preprocessingUi.execute(input);
-                outputBuffer.put(new BufferElement<>(output));
+                outputBuffer.add(output);
+
+//                CompletableFuture.supplyAsync(() -> preprocessingUi.execute(input), preprocessExec)
+//                        .thenAccept(output -> {
+//                    // Здесь ты должен класть в очередь, которая умеет сортировать по frameId
+//                    // Если outputBuffer - это PriorityBlockingQueue, передавай туда объект с frameId
+//                    outputBuffer.add(output);
+//                });
+                // ^ Тут всё равно будет десинхрон, если не сортировать
             }
         } catch (Exception e) {
             logger.warning(Arrays.toString(e.getStackTrace()));
         }
         long end = System.currentTimeMillis();
         if (end - start > 100) {
-            logger.info("Preprocess time: " + (end - start) + "ms");
+//            logger.info("Preprocess time: " + (end - start) + "ms");
         }
     }
 
-    private void processFrameFromAndPut(BufferableQueue<MatWrapper> outputBuffer,
-                                        BufferableQueue<MatWrapper> inputBuffer, UIModule<MatWrapper> processingUi,
+
+    private void processFrameFromAndPutAsync(Queue<MatWrapper> outputBuffer,
+                                             Queue<MatWrapper> inputBuffer,
+                                             UIModule<MatWrapper> processingUi,
+                                             VideoSaverUIModule videoSaverUIModule) {
+        MatWrapper element = inputBuffer.poll();
+        if (element != null) {
+            pipelinePool.submit(() -> {
+                long start = System.currentTimeMillis();
+                try {
+                    Mat originalMat = element.mat;
+                    if (originalMat != null) {
+                        Mat f = originalMat.clone();
+                        MatWrapper copy = new MatWrapper(element.frameIndex, f);
+
+                        MatWrapper result = processingUi.execute((copy));
+                        videoSaverUIModule.execute(result);
+                        outputBuffer.add((result));
+                    }
+                } catch (Exception e) {
+                    logger.warning("Exception in async pipeline: " + e.getMessage());
+                }
+                long end = System.currentTimeMillis();
+                if (end - start > 100) {
+                    logger.info("Processing time: " + (end - start) + "ms");
+                }
+            });
+        }
+    }
+
+
+    private void processFrameFromAndPut(Queue<MatWrapper> outputBuffer,
+                                        Queue<MatWrapper> inputBuffer, UIModule<MatWrapper> processingUi,
                                         VideoSaverUIModule videoSaverUIModule) {
         long start = System.currentTimeMillis();
         try {
-            BufferElement<MatWrapper> element = inputBuffer.get();
-            if (element != null && element.getData() != null) {
-                Mat originalMat = element.getData().mat();
+            MatWrapper element = inputBuffer.poll();
+            if (element != null && element != null) {
+                Mat originalMat = element.mat;
                 if (originalMat != null) {
-                    Mat f = originalMat.clone(); // Use clone() for efficiency instead of new + copyTo
-                    MatWrapper copy = new MatWrapper(element.getData().frameIndex(), f);
+                    Mat f = originalMat.clone();
+                    MatWrapper copy = new MatWrapper(element.frameIndex, f);
                     MatWrapper result = processingUi.execute(copy);
                     videoSaverUIModule.execute(result);
-                    outputBuffer.put(new BufferElement<>(result));
+                    outputBuffer.add((result));
                 }
             }
         } catch (Exception e) {
@@ -299,13 +332,13 @@ public class Pipeline {
         }
     }
 
-    private void renderFrameFromBuffer(BufferableQueue<MatWrapper> inputBuffer,
+    private void renderFrameFromBuffer(Queue<MatWrapper> inputBuffer,
                                        UIModule<Frame> videoRenderer) {
         long start = System.currentTimeMillis();
         try {
-            BufferElement<MatWrapper> element = inputBuffer.get();
+            MatWrapper element = inputBuffer.poll();
             if (element != null) {
-                Frame frame = converter.convert(element.getData().mat());
+                Frame frame = converter.convert(element.mat);
                 videoRenderer.execute(frame);
                 stat.processFPS();
                 stat.updateLatency();
@@ -340,7 +373,7 @@ public class Pipeline {
     private synchronized void startPreprocessThreads() {
         stopPreprocessThreads();
 
-        for (int i = 0; i < currentPreprocessThreads; i++) {
+        for (int i = 0; i < 1; i++) {
             preprocessTasks.add(cpuExecutor.submit(() -> {
                 while (!Thread.interrupted()) {
                     preprocessFrameFromAndPut(frameReaderBuffer, preprocessingUi, processingBuffer);
@@ -404,52 +437,5 @@ public class Pipeline {
         }
         renderTasks.clear();
         logger.info("Stopped render thread.");
-    }
-
-    public int getGrabThreadCount() {
-        return currentGrabThreads;
-    }
-
-    public synchronized void setGrabThreadCount(int newCount) {
-        if (newCount > 0 && newCount != currentGrabThreads) {
-            if (newCount > 1) {
-                logger.warning("Multiple grab threads may cause issues if video source is not thread-safe.");
-            }
-            currentGrabThreads = newCount;
-            startGrabThreads();
-        }
-    }
-
-    public int getPreprocessThreadCount() {
-        return currentPreprocessThreads;
-    }
-
-    public synchronized void setPreprocessThreadCount(int newCount) {
-        if (newCount > 0 && newCount != currentPreprocessThreads) {
-            int maxCores = Runtime.getRuntime().availableProcessors();
-            if (newCount > maxCores) {
-                logger.warning("Preprocess threads exceed available cores (" + maxCores + ").");
-            }
-            currentPreprocessThreads = newCount;
-            startPreprocessThreads();
-        }
-    }
-
-    public int getProcessingThreadCount() {
-        return currentProcessingThreads;
-    }
-
-    public synchronized void setProcessingThreadCount(int newCount) {
-        if (newCount > 0 && newCount != currentProcessingThreads) {
-            int maxCores = Runtime.getRuntime().availableProcessors();
-            if (newCount > 1) {
-                logger.warning("Multiple processing threads may overload gRPC server if not concurrent-capable.");
-            }
-            if (newCount > maxCores) {
-                logger.warning("Processing threads exceed available cores (" + maxCores + ").");
-            }
-            currentProcessingThreads = newCount;
-            startProcessingThreads();
-        }
     }
 }

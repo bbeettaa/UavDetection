@@ -4,10 +4,8 @@ import static org.bytedeco.opencv.global.opencv_imgproc.*;
 import static org.opencv.imgproc.Imgproc.FONT_HERSHEY_SIMPLEX;
 
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import knu.app.bll.algorithms.motion.ObjectMotionInfo;

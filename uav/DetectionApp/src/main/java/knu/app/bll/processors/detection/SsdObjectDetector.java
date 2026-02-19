@@ -4,6 +4,7 @@ import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
+import knu.app.bll.utils.MatWrapper;
 import knu.app.bll.utils.processors.DetectionResult;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.global.opencv_imgcodecs;
@@ -91,8 +92,8 @@ public class SsdObjectDetector implements ObjectDetector {
         public void setJpegQuality(int quality) { this.jpegQuality = quality; }
 
     @Override
-    public DetectionResult detect(Mat frameGray)  {
-        byte[] jpeg = matToJpeg(frameGray);
+    public DetectionResult detect(MatWrapper matWrapper)  {
+        byte[] jpeg = matToJpeg(matWrapper.mat);
 
         CountDownLatch latch = new CountDownLatch(1);
         List<org.bytedeco.opencv.opencv_core.Rect> rects = new LinkedList<>();

@@ -188,7 +188,7 @@ public class PipelineInitializer {
                 new FrameSizerPreprocessor(1920, 1080),
 //        new StabilizationFramePreprocessor(),
 //        new FeatureBasedStabilizer()
-                new KMeansPreprocessor(2),
+                new KMeansPreprocessor(),
                 new DbscanPreprocessor()
         );
 
@@ -347,7 +347,7 @@ public class PipelineInitializer {
         try {
             BufferElement<MatWrapper> o = processingBuffer.get();
             if (o != null && o.getData() != null) {
-                Mat originalMat = o.getData().mat();
+                Mat originalMat = o.getData().mat;
                 if (originalMat != null) {
                     Mat f = new Mat();
 //                try (Mat m = o.getData().mat()) {
@@ -355,7 +355,7 @@ public class PipelineInitializer {
 //                    var res = processingUi.execute(new MatWrapper(o.getTimestamp(), f));
 //                    frameWriterBuffer.put(new BufferElement<>(res));
 //                }
-                    MatWrapper copy = new MatWrapper(o.getData().frameIndex(), f);
+                    MatWrapper copy = new MatWrapper(o.getData().frameIndex, f);
 //                try {/
                     originalMat.copyTo(f);
                     MatWrapper result = processingUi.execute(copy);
@@ -377,7 +377,7 @@ public class PipelineInitializer {
         try {
             BufferElement<MatWrapper> element = frameWriterBuffer.get();
             if (element != null) {
-                Frame fr = converter.convert(element.getData().mat());
+                Frame fr = converter.convert(element.getData().mat);
                 videoRenderer.execute(fr);
                 stat.processFPS();
                 stat.updateLatency();

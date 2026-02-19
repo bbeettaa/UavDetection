@@ -38,6 +38,8 @@ public class PreprocessorUiModule implements UIModule<MatWrapper> {
   private final ImInt sheight;
   private final ImInt reschoise = new ImInt(0);
   private final ImInt kmeanK;
+  private final ImInt kmeanMaxIter = new ImInt(10);
+  private final ImFloat kmeanEps = new ImFloat(0.1f);
   //  private final ImInt kmeanDepth;
   private final ImFloat dbscanEps;
   private final ImInt dbscanMin;
@@ -130,7 +132,22 @@ public class PreprocessorUiModule implements UIModule<MatWrapper> {
     ImGui.sameLine();
     ImGui.checkbox(LocalizationManager.tr("preprocessor.clustering.kmean.name"), kmeanf);
     ImGui.sameLine();
-    ImGui.inputInt(LocalizationManager.tr("preprocessor.clustering.kmean.kluster"), kmeanK, 1);
+    ImGui.pushItemWidth(100);
+    if(ImGui.inputInt(LocalizationManager.tr("preprocessor.clustering.kmean.kluster"), kmeanK, 1)){
+      kMeansPreprocessor.setK(kmeanK.get());
+    }
+    ImGui.sameLine();
+    if(ImGui.inputInt("Iter##KmeanIter", kmeanMaxIter, 1)){
+      kMeansPreprocessor.setCriteria(kmeanMaxIter.get(), kmeanEps.get());
+    }
+    ImGui.sameLine();
+    if(ImGui.inputFloat("Eps##KmeanEps", kmeanEps, 0.1f, 1.0f, "%.1f")){
+      kMeansPreprocessor.setK(kmeanK.get());
+    }
+    ImGui.popItemWidth();
+
+
+
 //    ImGui.sameLine();
 //    ImGui.inputInt(LocalizationManager.tr("preprocessor.clustering.kmean.depth"), kmeanDepth, 1);
 
@@ -169,7 +186,7 @@ public class PreprocessorUiModule implements UIModule<MatWrapper> {
 
   @Override
   public MatWrapper execute(MatWrapper mat) {
-    Mat m = mat.mat();
+    Mat m = mat.mat;
     if (sizerf.get()) {
       sizer.process(m);
     }
@@ -202,10 +219,6 @@ public class PreprocessorUiModule implements UIModule<MatWrapper> {
       m = dbscanPreprocessor.process(m);
     }
 
-    if (kmeanf.get()) {
-      kMeansPreprocessor.setK(kmeanK.get());
-//      kMeansPreprocessor.setMaxDepth(kmeanDepth.get());
-    }
     if(dbscanf.get()){
       dbscanPreprocessor.setEps(dbscanEps.get());
       dbscanPreprocessor.setMinPts(dbscanMin.get());
@@ -216,7 +229,7 @@ public class PreprocessorUiModule implements UIModule<MatWrapper> {
 //      m = canny.process(m);
 //    }
 
-    return new MatWrapper(mat.frameIndex(), m);
+    return new MatWrapper(mat.frameIndex, m);
 //        if (sizerf.get()) mat = sizer.process(mat.mat());
 //
 //        if (grayscalef.get()) mat = gray.process(mat);

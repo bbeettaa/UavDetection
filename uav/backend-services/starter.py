@@ -1,17 +1,21 @@
 import threading
 from concurrent import futures
 import grpc
-
+import torch
 
 from proto import ssd_detector_pb2_grpc, yolo_detector_pb2_grpc, bytetrack_tracker_pb2_grpc, deepsort_tracker_pb2_grpc, \
     sort_tracker_pb2_grpc, strongsort_tracker_pb2_grpc
 from proto.deepsort_tracker_pb2_grpc import DeepSortService
+from server.detector.async_yolo_service import YoloService
 from server.detector.ssd_server import SsdDetectionService
-from server.detector.yolo_server import YoloService
+# from server.detector.yolo_server import YoloService
 from server.tracker.deepsort_server import DeepSortServicerImpl
 from server.tracker.sort_server import SortService
 from server.tracker.strongsort_server import StrongSortService
 
+import multiprocessing as mp
+import grpc
+from concurrent import futures
 # from server.tracker.bytetrack_yolo import ByteTrackService
 
 MAX_MESSAGE_SIZE = 50 * 1024 * 1024
@@ -25,7 +29,59 @@ MAX_MESSAGE_SIZE = 50 * 1024 * 1024
 # YOLO SERVER
 # ============================================================
 
+
+#
+# def start_yolo_server_sync():
+#     server = grpc.server(
+#         futures.ThreadPoolExecutor(max_workers=12),
+#         options=[
+#             ("grpc.max_receive_message_length", MAX_MESSAGE_SIZE),
+#             ("grpc.max_send_message_length", MAX_MESSAGE_SIZE),
+#         ],
+#     )
+#
+#     yolo_detector_pb2_grpc.add_YoloDetectionServiceServicer_to_server(
+#         YoloProcessPoolService(model_path="server/detector/yolo/yolov8n.pt"),
+#         server,
+#     )
+#
+#     server.add_insecure_port("[::]:50051")
+#     server.start()
+#     print("YOLO gRPC server running on port 50051")
+#     server.wait_for_termination()
+
+
+
+#
+# def start_yolo_server_sync_one():
+#     server = grpc.server(
+#         futures.ThreadPoolExecutor(max_workers=12),
+#         options=[
+#             ("grpc.max_receive_message_length", MAX_MESSAGE_SIZE),
+#             ("grpc.max_send_message_length", MAX_MESSAGE_SIZE),
+#         ],
+#     )
+#     yolo_detector_pb2_grpc.add_YoloDetectionServiceServicer_to_server(
+#         YoloService(model_path="server/detector/yolo/yolov8n.pt"),
+#         server,
+#     )
+#     server.add_insecure_port("[::]:50051")
+#     server.start()
+#     print("YOLO gRPC server running on port 50051")
+#     server.wait_for_termination()
+#
 def start_yolo_server():
+    from concurrent import futures
+    import grpc
+
+    print(f"ROCm version: {torch.version.hip}")  # Должно вывести версию (например, 6.0/6.2)
+    print(f"Is ROCm/CUDA available: {torch.cuda.is_available()}")
+    print(f"Device name: {torch.cuda.get_device_name(0)}")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Using device: {device}")
+
+    MAX_MESSAGE_SIZE = 200 * 1024 * 1024
+
     server = grpc.server(
         futures.ThreadPoolExecutor(max_workers=12),
         options=[
@@ -33,19 +89,14 @@ def start_yolo_server():
             ("grpc.max_send_message_length", MAX_MESSAGE_SIZE),
         ],
     )
-
     yolo_detector_pb2_grpc.add_YoloDetectionServiceServicer_to_server(
-        YoloService(model_path="server/detector/yolo/yolov8n.pt"),
+        YoloService(model_path="server/detector/yolo/yolov8s.pt", device=device, num_models=12),
         server,
     )
-
     server.add_insecure_port("[::]:50051")
     server.start()
-
     print("YOLO gRPC server running on port 50051")
     server.wait_for_termination()
-
-
 # ============================================================
 # SSD SERVER
 # ============================================================
@@ -144,7 +195,6 @@ if __name__ == "__main__":
     # bytetrack_thread = threading.Thread(target=start_bytetrack_server)
     deepsort_thread = threading.Thread(target=start_deepsort_server)
     sort_thread = threading.Thread(target=start_sort_server)
-    strongsort_thread = threading.Thread(target=start_strongsort_server)
     strongsort_thread = threading.Thread(target=start_strongsort_server)
 
     yolo_thread.start()

@@ -17,6 +17,12 @@ public class TrackedObject   {
     private final ObjectTracker tracker;
     private final List<Boolean> hitHistory;
 
+    private double velocity;
+    private double acceleration;
+    private double direction; // Угол в радианах
+    private double aspectRatio; // Геометрия (w/h)
+    private double area; // Размер
+
     public enum TrackState {
         Tentative, Confirmed, Deleted
     }

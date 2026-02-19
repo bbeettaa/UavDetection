@@ -1,6 +1,8 @@
 package knu.app.bll.buffers;
 
-public class BufferElement<T> {
+import knu.app.bll.utils.MatWrapper;
+
+public class BufferElement<T>  implements Comparable<BufferElement> {
     private final T data;
     private final long timestamp;
 
@@ -15,5 +17,10 @@ public class BufferElement<T> {
 
     public long getTimestamp() {
         return timestamp;
+    }
+
+    @Override
+    public int compareTo(BufferElement other) {
+        return Long.compare(this.timestamp, other.timestamp);
     }
 }

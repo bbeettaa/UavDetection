@@ -39,7 +39,7 @@ public class Main {
         String hogDescriptor = "uav/DetectionApp/src/main/resources/HOGDescriptorEsp.Big";
 
 //        PipelineInitializer initializer = new PipelineInitializer(1, singleDescriptor, hogDescriptor, hogSvmDetectorConfig);        PipelineInitializer initializer = new PipelineInitializer(1, singleDescriptor, hogDescriptor, hogSvmDetectorConfig);
-        Pipeline initializer = new Pipeline(5, singleDescriptor, hogDescriptor, hogSvmDetectorConfig);
+        Pipeline initializer = new Pipeline(30, singleDescriptor, hogDescriptor, hogSvmDetectorConfig);
         VideoProcessingUI ui = new VideoProcessingUI(initializer.getUiModules());
         ui.run();
     }
