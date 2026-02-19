@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 import knu.app.Main;
 import knu.app.bll.algorithms.associative.AssociationAlgorithm;
 import knu.app.bll.algorithms.associative.HungarianIoUAssociationJGraphT;
+import knu.app.bll.algorithms.feature.anomaly.StatisticalThresholdAnomaly;
 import knu.app.bll.algorithms.trajectory.TrajectoryManager;
 import knu.app.bll.events.EventModelListener;
 import knu.app.bll.grabbers.PlaybackControlFFmpegFrameGrabberVideoSource;
@@ -41,7 +42,6 @@ import knu.app.ui.menu.ToggleMenuSection;
 import knu.app.ui.modules.AnalyticsUIModule;
 import knu.app.ui.modules.CurrentObjectsUIModule;
 import knu.app.ui.modules.MetricsUIModule;
-import knu.app.ui.modules.PipelineControlUI;
 import knu.app.ui.modules.PreprocessorUiModule;
 import knu.app.ui.modules.ProcessingModule;
 import knu.app.ui.modules.PureVideoGrabber;
@@ -82,7 +82,7 @@ public class Pipeline {
     private final List<UIModule<?>> uiModules = new ArrayList<>();
     private final StatisticDisplayUI stat = StatisticDisplayUI.getEntity();
     private final MetricsUIModule metrics = new MetricsUIModule();
-    TrajectoryManager trajectoryManager = new TrajectoryManager(60);
+    TrajectoryManager trajectoryManager = new TrajectoryManager(60, new StatisticalThresholdAnomaly());
     private final CurrentObjectsUIModule currentObjectsUIModule = new CurrentObjectsUIModule(trajectoryManager);
 
     private PureVideoGrabber videoGrabber;

@@ -31,6 +31,7 @@ class YoloService(yolo_detector_pb2_grpc.YoloDetectionServiceServicer):
         self.device = device
         self.sessions = defaultdict(SessionContext)
         self.global_config = yolo_detector_pb2.YoloConfig()
+        self.model_path = model_path
 
         # Создаем пул моделей
         self.model_pool = queue.Queue()
@@ -62,8 +63,9 @@ class YoloService(yolo_detector_pb2_grpc.YoloDetectionServiceServicer):
         new_config = request.config
         self.global_config = new_config
 
-        if new_config.model_path:
+        if (new_config.model_path and self.model_path != new_config.model_path):
             print(f"Reloading model pool with {new_config.model_path}")
+            self.model_path = new_config.model_path
 
             while not self.model_pool.empty():
                 try:

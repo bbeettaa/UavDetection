@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import knu.app.bll.algorithms.feature.ObjectState;
 import knu.app.bll.algorithms.motion.ComputeMotion;
 import knu.app.bll.algorithms.motion.ObjectMotionInfo;
 import knu.app.bll.algorithms.trajectory.TrajectoryManager;
@@ -56,15 +58,15 @@ public class CurrentObjectsUIModule implements UIModule<Void> {
 
     // snapshot траекторий + фильтр мертвых треков
     Map<Integer, LinkedList<Point>> snapshot = new HashMap<>();
-    Map<Integer, CopyOnWriteArrayList<Point>> src = trajectoryManager.getTrajectories();
+    var src = trajectoryManager.getTrajectories();
 
-    for (Map.Entry<Integer, CopyOnWriteArrayList<Point>> entry : src.entrySet()) {
+    for (var entry : src.entrySet()) {
       int id = entry.getKey();
       if (!trajectoryManager.isAlive(id)) continue;
 
       LinkedList<Point> safeCopy = new LinkedList<>();
-      for (Point p : entry.getValue()) {
-        safeCopy.add(p);
+      for (ObjectState p : entry.getValue()) {
+        safeCopy.add(p.center);
       }
       snapshot.put(id, safeCopy);
     }

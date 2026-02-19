@@ -215,21 +215,19 @@ public class ProcessingModule implements UIModule<MatWrapper> {
             }
         }
 
-        if (drawTrajectory.get()) {
-            trajectoryRender.getRenderer().renderTrajectory(mat);
-        }
+        if (drawTrajectory.get()) trajectoryRender.getRenderer().renderTrajectory(mat);
 
-        if (drawSpeedTrajectory.get()) {
-            trajectoryRender.getRenderer().renderSpeed (mat);
-        }
+        if (drawSpeedTrajectory.get()) trajectoryRender.getRenderer().renderSpeed(mat);
 
-        if (drawDirectionTrajectory.get()) {
-            trajectoryRender.getRenderer().renderDirection(mat);
-        }
 
-        if (trackedObjects != null) {
-            trajectoryRender.getRenderer().update(mat, trackedObjects);
-        }
+        if (drawDirectionTrajectory.get()) trajectoryRender.getRenderer().renderDirection(mat);
+
+
+        if (trackedObjects != null) trajectoryRender.getRenderer().update(mat, trackedObjects);
+
+
+        if (drawDirectionTrajectory.get()) trajectoryRender.getRenderer().renderAnomalies(mat);
+
 
         if (trackedObjects != null) {
             metrics.evaluate(matWrapper.frameIndex,

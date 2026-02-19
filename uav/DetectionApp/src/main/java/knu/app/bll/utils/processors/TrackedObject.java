@@ -4,6 +4,7 @@ import knu.app.bll.processors.tracker.single.ObjectTracker;
 import org.bytedeco.opencv.opencv_core.Rect;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
@@ -17,11 +18,7 @@ public class TrackedObject   {
     private final ObjectTracker tracker;
     private final List<Boolean> hitHistory;
 
-    private double velocity;
-    private double acceleration;
-    private double direction; // Угол в радианах
-    private double aspectRatio; // Геометрия (w/h)
-    private double area; // Размер
+    private final LinkedList<Double> velocityHistory = new LinkedList<>();
 
     public enum TrackState {
         Tentative, Confirmed, Deleted
