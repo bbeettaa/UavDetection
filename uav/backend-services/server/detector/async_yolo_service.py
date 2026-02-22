@@ -45,20 +45,6 @@ class YoloService(yolo_detector_pb2_grpc.YoloDetectionServiceServicer):
             print(f"Model instance {i + 1} loaded.")
 
 
-    # --------------------------
-    # CONFIG
-    # --------------------------
-    # def SetConfig(self, request, context):
-    #     self.global_config = request.config
-    #     if(self.global_config.model_path != ""):
-    #         self.model = YOLO(self.global_config.model_path)
-    #     session = self.sessions[request.session_id]
-    #     with session.lock:
-    #         session.active = True
-    #         session.config = self.global_config
-    #     print("Config updated:", self.global_config)
-    #     return google_dot_protobuf_dot_empty__pb2.Empty()
-
     def SetConfig(self, request, context):
         new_config = request.config
         self.global_config = new_config

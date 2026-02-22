@@ -19,15 +19,12 @@ public class ObjectState {
     // 2. Кінематичні ознаки
     public double speed;
     public double angleDirection;
-    public double acceleration; // похідна
 
     public double brightnessMean;
     public double textureStdDev;
 
     public boolean isAnomalous = false;
     public String anomalyDescription = "";
-
-    public Map<String, Boolean> classificationResults = new HashMap<>();
 
     public ObjectState(Point center, Rect boundingBox) {
         this.center = center;

@@ -11,11 +11,17 @@ import tracker.sort.SortServiceGrpc;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class SortGrpcTracker implements MultiObjectTracker {
 
     private final SortServiceGrpc.SortServiceBlockingStub stub;
     private final ManagedChannel channel;
+    private final Map<Integer, TrackedObject> activeTracks = new ConcurrentHashMap<>();
+
 
     public SortGrpcTracker(String host, int port) {
         this.channel = ManagedChannelBuilder.forAddress(host, port)
@@ -44,6 +50,7 @@ public class SortGrpcTracker implements MultiObjectTracker {
     @Override
     public List<TrackedObject> update(Mat frame, List<DetectionResult> detResults) {
         byte[] imageBytes = Utils.matToJpegBytes(frame);
+
         tracker.sort.SortTracker.FrameRequest.Builder requestBuilder =
                 tracker.sort.SortTracker.FrameRequest.newBuilder()
                         .setImage(com.google.protobuf.ByteString.copyFrom(imageBytes));
@@ -55,6 +62,7 @@ public class SortGrpcTracker implements MultiObjectTracker {
 
             for (int i = 0; i < rects.size(); i++) {
                 Rect rect = rects.get(i);
+
                 requestBuilder.addDetectionsBuilder()
                         .setX(rect.x())
                         .setY(rect.y())
@@ -63,27 +71,52 @@ public class SortGrpcTracker implements MultiObjectTracker {
                         .setConfidence(scores.get(i).floatValue())
                         .setClassName(names.get(i));
             }
-
         }
 
-        tracker.sort.SortTracker.UpdateResponse response = stub.update(requestBuilder.build());
-        List<TrackedObject> tracks = new ArrayList<>();
+        tracker.sort.SortTracker.UpdateResponse response =
+                stub.update(requestBuilder.build());
+
+        List<TrackedObject> resultTracks = new ArrayList<>();
+
+        Set<Integer> currentIds = response.getTracksList().stream()
+                .map(t -> Integer.parseInt(t.getId()))
+                .collect(Collectors.toSet());
+
         for (tracker.sort.SortTracker.TrackedObject protoTrack : response.getTracksList()) {
+
+            int id = Integer.parseInt(protoTrack.getId());
+
             Rect rect = new Rect(
                     (int) protoTrack.getX(),
                     (int) protoTrack.getY(),
                     (int) protoTrack.getWidth(),
                     (int) protoTrack.getHeight()
             );
-            TrackedObject track = new TrackedObject(rect);
-            track.setId(Integer.parseInt(protoTrack.getId()));  // если id строка
-            track.setScore((float) protoTrack.getConfidence());
-            track.setState(TrackedObject.TrackState.Confirmed); // или по protoTrack
-            tracks.add(track);
-        }
-        return tracks;
 
+            TrackedObject track = activeTracks.get(id);
+
+            if (track == null) {
+                // Новый трек
+                track = new TrackedObject(rect);
+                track.setId(id);
+                activeTracks.put(id, track);
+            } else {
+                // Обновляем существующий
+                track.setRect(rect);
+            }
+
+            track.setScore((float) protoTrack.getConfidence());
+            track.setState(TrackedObject.TrackState.Confirmed);
+
+            resultTracks.add(track);
+        }
+
+        // Удаляем треки, которых больше нет в ответе SORT
+        activeTracks.keySet().removeIf(id -> !currentIds.contains(id));
+
+        return resultTracks;
     }
+
 
 
     @Override

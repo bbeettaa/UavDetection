@@ -215,19 +215,27 @@ public class ProcessingModule implements UIModule<MatWrapper> {
             }
         }
 
-        if (drawTrajectory.get()) trajectoryRender.getRenderer().renderTrajectory(mat);
-
-        if (drawSpeedTrajectory.get()) trajectoryRender.getRenderer().renderSpeed(mat);
-
-
-        if (drawDirectionTrajectory.get()) trajectoryRender.getRenderer().renderDirection(mat);
-
-
         if (trackedObjects != null) trajectoryRender.getRenderer().update(mat, trackedObjects);
+//        if (drawTrajectory.get()) trajectoryRender.getRenderer().renderTrajectory(mat);
+//        if (drawSpeedTrajectory.get()) trajectoryRender.getRenderer().renderSpeed(mat);
+//        if (drawDirectionTrajectory.get()) trajectoryRender.getRenderer().renderDirection(mat);
+//        if (drawDirectionTrajectory.get()) trajectoryRender.getRenderer().renderAnomalies(mat);
 
 
-        if (drawDirectionTrajectory.get()) trajectoryRender.getRenderer().renderAnomalies(mat);
-
+        if (trackedObjects != null) {
+            if (drawTrajectory.get()) {
+                trajectoryRender.getRenderer().renderTrajectory(mat, trackedObjects);
+            }
+            if (drawSpeedTrajectory.get()) {
+                trajectoryRender.getRenderer().renderSpeed(mat, trackedObjects);
+            }
+            if (drawDirectionTrajectory.get()) {
+                trajectoryRender.getRenderer().renderDirection(mat, trackedObjects);
+            }
+            if (drawDirectionTrajectory.get()) {
+                trajectoryRender.getRenderer().renderAnomalies(mat, trackedObjects);
+            }
+        }
 
         if (trackedObjects != null) {
             metrics.evaluate(matWrapper.frameIndex,
@@ -237,11 +245,6 @@ public class ProcessingModule implements UIModule<MatWrapper> {
 
         return matWrapper;
     }
-
-    private void executeDetectors(MatWrapper matWrapper) {
-
-    }
-
 
     @Override
     public void show() {

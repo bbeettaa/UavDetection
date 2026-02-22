@@ -16,9 +16,6 @@ import org.bytedeco.opencv.opencv_core.Rect;
 
 public class TrajectoryManager {
 
-//    private final Map<Integer, Integer> deadFramesCount = new ConcurrentHashMap<>();
-    private final Map<Integer, CopyOnWriteArrayList<ObjectState>> trajectories = new ConcurrentHashMap<>();
-
     private int maxLength;
     private int selectedTrack = -1;
     private final AnomalyClassifier anomalyClassifier;
@@ -28,11 +25,10 @@ public class TrajectoryManager {
             new MovingAverageAnomaly(),
             new DirectionCurvatureAnomaly(),
             new ShapeDeformationAnomaly(),
-            new TextureChangeAnomaly()
+            new TextureChangeAnomaly(),
+            new KNNAnomalyDetector()
     );
     private int activeDetectorIndex = 0;
-    private float sensitivity = 1.0f;
-
 
     public TrajectoryManager(int maxLength, AnomalyClassifier anomalyClassifier) {
         this.maxLength = maxLength;
@@ -40,46 +36,15 @@ public class TrajectoryManager {
     }
 
     public void updateTrajectory(Mat frame, List<TrackedObject> trackedObjects) {
-        // 1. Маппинг активных объектов
-        Map<Integer, TrackedObject> activeNow = new HashMap<>();
+        if (trackedObjects == null) return;
         for (TrackedObject obj : trackedObjects) {
-            if (!obj.isDeleted()) activeNow.put(obj.getId(), obj);
-        }
-
-        // 2. Обновление существующих траекторий
-        var iterator = trajectories.entrySet().iterator();
-        while (iterator.hasNext()) {
-            var entry = iterator.next();
-            int id = entry.getKey();
-            TrackedObject obj = activeNow.get(id);
-
-            if (obj != null) {
-                CopyOnWriteArrayList<ObjectState> history = entry.getValue();
-                ObjectState newState = extractFeatures(frame, obj, history);
-
-                // Сначала добавляем, потом детектируем (чтобы методы видели актуальный getLast())
-                history.add(newState);
-                trimToMaxLength(history);
-
-                newState.isAnomalous = detectors.get(activeDetectorIndex).detectAnomaly(history);
-
-                activeNow.remove(id);
-            } else {
-                iterator.remove(); // Мгновенное удаление "призраков"
+            if (obj.isDeleted()) continue;
+            ObjectState newState = extractFeatures(frame, obj);
+            obj.addState(newState, maxLength);
+            if (activeDetectorIndex >= 0 && activeDetectorIndex < detectors.size()) {
+                newState.isAnomalous = detectors.get(activeDetectorIndex).detectAnomaly(obj.getTrajectory());
             }
         }
-
-        // 3. Инициализация новых траекторий
-        for (TrackedObject newObj : activeNow.values()) {
-            CopyOnWriteArrayList<ObjectState> history = new CopyOnWriteArrayList<>();
-            ObjectState firstState = extractFeatures(frame, newObj, history);
-            history.add(firstState);
-            trajectories.put(newObj.getId(), history);
-        }
-    }
-
-    public Map<Integer, CopyOnWriteArrayList<ObjectState>> getTrajectories() {
-        return trajectories;
     }
 
     public int getMaxLength() {
@@ -88,10 +53,6 @@ public class TrajectoryManager {
 
     public void setMaxLength(int maxLength) {
         this.maxLength = maxLength;
-
-        for (var tr : trajectories.values()) {
-            trimToMaxLength(tr);
-        }
     }
 
     public void setSelectedTrack(int selectedTrack) {
@@ -102,18 +63,10 @@ public class TrajectoryManager {
         return selectedTrack;
     }
 
-    public boolean isAlive(int id) {
-        var traj = trajectories.get(id);
-        return traj != null && !traj.isEmpty();
-    }
-
-    public ObjectMotionInfo getMotionInfo(int id) {
-        CopyOnWriteArrayList<ObjectState> traj = trajectories.get(id);
-        return ComputeMotion.computeMotion(id, traj);
-    }
-
-    private ObjectState extractFeatures(Mat frame, TrackedObject obj, CopyOnWriteArrayList<ObjectState> history) {
+    private ObjectState extractFeatures(Mat frame, TrackedObject obj) {
         Rect rect = obj.getRect();
+        var history = obj.getTrajectory();
+
         Point center = new Point(rect.x() + rect.width() / 2, rect.y() + rect.height() / 2);
         ObjectState state = new ObjectState(center, rect);
 
@@ -125,9 +78,7 @@ public class TrajectoryManager {
             state.angleDirection = Math.atan2(dy, dx);
         }
 
-        // ПУНКТ 1 Лабы: Текстурные характеристики
         try {
-            // Исправленный расчет безопасного Rect
             int x = Math.max(0, rect.x());
             int y = Math.max(0, rect.y());
             int w = Math.min(rect.width(), frame.cols() - x);
@@ -147,15 +98,8 @@ public class TrajectoryManager {
         return state;
     }
 
-    private void trimToMaxLength(CopyOnWriteArrayList<ObjectState> trajectory) {
-        while (trajectory.size() > maxLength) {
-            trajectory.removeFirst();
-        }
-    }
-
     public void setActiveDetectorIndex(int index) { this.activeDetectorIndex = index; }
     public int getActiveDetectorIndex() { return activeDetectorIndex; }
-    public void setSensitivity(float s) { this.sensitivity = s; }
     public String[] getDetectorNames() {
         return detectors.stream().map(AnomalyClassifier::getMethodName).toArray(String[]::new);
     }

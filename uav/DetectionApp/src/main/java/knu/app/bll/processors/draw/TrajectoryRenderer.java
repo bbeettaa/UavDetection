@@ -4,12 +4,11 @@ import static org.bytedeco.opencv.global.opencv_imgproc.*;
 import static org.opencv.imgproc.Imgproc.FONT_HERSHEY_SIMPLEX;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import knu.app.bll.algorithms.feature.ObjectState;
-import knu.app.bll.algorithms.motion.ObjectMotionInfo;
 import knu.app.bll.algorithms.trajectory.TrajectoryManager;
 import knu.app.bll.utils.processors.TrackedObject;
 import org.bytedeco.opencv.opencv_core.Mat;
@@ -24,121 +23,89 @@ public class TrajectoryRenderer implements DetectionRenderer {
 
     private final Scalar defaultColor = new Scalar(255, 255, 0, 150);
     private final Scalar directionColor = new Scalar(28, 255, 119, 254);
-    private final Scalar anomalyColor = new Scalar(0, 165, 255, 255); // Оранжевий для аномалій (BGR)
-    // private final Scalar directionColor = new Scalar(82, 184, 231, 150);
+    private final Scalar anomalyColor = new Scalar(0, 165, 255, 255);
     private int defaultThickness = 2;
+
+    private Map<Integer, Point2f> smoothedDirections = new HashMap<>();
+    private double alpha = 0.2;
+
 
     public TrajectoryRenderer(TrajectoryManager trajectoryManager) {
         this.trajectoryManager = trajectoryManager;
     }
 
-    public void renderSpeed(Mat frame) {
-        drawSpeed(frame, directionColor, defaultThickness, LINE_8);
+    public void renderSpeed(Mat frame, List<TrackedObject> trackedObjects) {
+        for (TrackedObject obj : trackedObjects) {
+            if (obj.isDeleted() || obj.getTrajectory().isEmpty()) continue;
+
+            ObjectState last = obj.getTrajectory().getLast();
+            if (last.speed < 0.1) continue;
+
+            String text = String.format("%.1f px/f", last.speed);
+            putText(frame, text, new Point(last.center.x() + 5, last.center.y() - 5),
+                    FONT_HERSHEY_SIMPLEX, 0.5, directionColor, defaultThickness, LINE_AA, false);
+        }
     }
 
-    public void renderDirection(Mat frame) {
-        drawDirection(frame, directionColor, defaultThickness, LINE_8);
+    public void renderDirection(Mat frame, List<TrackedObject> trackedObjects) {
+        for (TrackedObject obj : trackedObjects) {
+            if (obj.isDeleted() || obj.getTrajectory().size() < 2) continue;
+
+            ObjectState current = obj.getTrajectory().getLast();
+            ObjectState prev = obj.getTrajectory().get(obj.getTrajectory().size() - 2);
+
+            double vx = current.center.x() - prev.center.x();
+            double vy = current.center.y() - prev.center.y();
+            double norm = Math.sqrt(vx * vx + vy * vy);
+            if (norm < 1e-3) continue;
+
+            Point2f prevSmooth = smoothedDirections.getOrDefault(obj.getId(), new Point2f((float) (vx / norm), (float) (vy / norm)));
+            float svx = (float) (alpha * (vx / norm) + (1 - alpha) * prevSmooth.x());
+            float svy = (float) (alpha * (vy / norm) + (1 - alpha) * prevSmooth.y());
+            smoothedDirections.put(obj.getId(), new Point2f(svx, svy));
+
+            Point end = new Point((int) (current.center.x() + svx * 40), (int) (current.center.y() + svy * 40));
+            arrowedLine(frame, current.center, end, directionColor, defaultThickness, LINE_AA, 0, 0.2);
+        }
     }
 
     public void update(Mat frame, List<TrackedObject> trackedObjects) {
         trajectoryManager.updateTrajectory(frame, trackedObjects);
     }
 
-    private void drawSpeed(Mat frame, Scalar color, int thickness, int lineType) {
-        for (Map.Entry<Integer, CopyOnWriteArrayList<ObjectState>> entry
-                : trajectoryManager.getTrajectories().entrySet()) {
-            int id = entry.getKey();
-            var trajectory = entry.getValue();
-            if (trajectory.isEmpty()) continue;
-            ObjectMotionInfo motion = trajectoryManager.getMotionInfo(id);
-            if (motion == null || (motion.vx == 0 && motion.vy == 0)) continue;
-            // Извлекаем center из ObjectState
-            Point lastCenter = trajectory.getLast().center;
-            String text = String.format("%.1f px/s", motion.speed);
-            putText(frame,
-                    text,
-                    new Point(lastCenter.x() + 5, lastCenter.y() - 5),
-                    FONT_HERSHEY_SIMPLEX,
-                    0.6,
-                    color,
-                    thickness,
-                    lineType,
-                    false);
-        }
-    }
+    public void renderAnomalies(Mat frame, List<TrackedObject> trackedObjects) {
+        for (TrackedObject obj : trackedObjects) {
+            if (obj.isDeleted() || obj.getTrajectory().isEmpty()) continue;
 
-    private void drawDirection(Mat frame, Scalar color, int thickness, int lineType) {
-        for (Map.Entry<Integer, CopyOnWriteArrayList<ObjectState>> entry
-                : trajectoryManager.getTrajectories().entrySet()) {
-            int id = entry.getKey();
-            var trajectory = entry.getValue();
-            if (trajectory.isEmpty()) continue;
-            ObjectMotionInfo motion = trajectoryManager.getMotionInfo(id);
-            if (motion == null) continue;
-            // Извлекаем center из ObjectState
-            Point lastCenter = trajectory.getLast().center;
-            double vx = motion.vx;
-            double vy = motion.vy;
-            double norm = Math.sqrt(vx * vx + vy * vy);
-            if (norm < 1e-3) continue;
-            vx /= norm;
-            vy /= norm;
-            int arrowLength = 40;
-            Point end = new Point(
-                    (int) (lastCenter.x() + vx * arrowLength),
-                    (int) (lastCenter.y() + vy * arrowLength)
-            );
-            arrowedLine(
-                    frame,
-                    lastCenter,
-                    end,
-                    color,
-                    thickness,
-                    lineType,
-                    0,
-                    0.2
-            );
-        }
-    }
-
-    public void renderAnomalies(Mat frame) {
-        for (Map.Entry<Integer, CopyOnWriteArrayList<ObjectState>> entry :
-                trajectoryManager.getTrajectories().entrySet()) {
-            CopyOnWriteArrayList<ObjectState> trajectory = entry.getValue();
-            if (trajectory.isEmpty()) continue;
-            ObjectState current = trajectory.getLast();
+            ObjectState current = obj.getTrajectory().getLast();
             if (current.isAnomalous) {
-                rectangle(frame, current.boundingBox, anomalyColor, 3, LINE_8, 0);
-                putText(frame,
-                        (current.anomalyDescription != null ? current.anomalyDescription : ""),
-                        new Point(current.boundingBox.x(), current.boundingBox.y() + current.boundingBox.height() + 20), // Позиція знизу
-                        FONT_HERSHEY_SIMPLEX,
-                        0.6,
-                        anomalyColor,
-                        2, LINE_8, false);
+                rectangle(frame, current.boundingBox, anomalyColor, 3, LINE_AA, 0);
+                String desc = current.anomalyDescription != null ? current.anomalyDescription : "ANOMALY";
+                putText(frame, desc, new Point(current.boundingBox.x(), current.boundingBox.y() + current.boundingBox.height() + 20),
+                        FONT_HERSHEY_SIMPLEX, 0.6, anomalyColor, 2, LINE_AA, false);
             }
         }
     }
 
-    public void renderTrajectory(Mat frame) {
-        for (Map.Entry<Integer, CopyOnWriteArrayList<ObjectState>> entry :
-                trajectoryManager.getTrajectories().entrySet()) {
-            CopyOnWriteArrayList<ObjectState> trajectory = entry.getValue();
-            if (trajectory.size() < 2) continue;
-            ObjectState prev = trajectory.getFirst();
+    public void renderTrajectory(Mat frame, List<TrackedObject> trackedObjects) {
+        for (TrackedObject obj : trackedObjects) {
+            LinkedList<ObjectState> trajectory = obj.getTrajectory();
+            if (obj.isDeleted() || trajectory.size() < 2) continue;
+
             boolean isAnomalous = trajectory.getLast().isAnomalous;
             Scalar color = isAnomalous ? anomalyColor : defaultColor;
-            for (ObjectState state : trajectory) {
-                if (prev != state) {
-                    line(frame, prev.center, state.center, color, defaultThickness, LINE_8, 0);
-                }
-                prev = state;
+
+            for (int i = 1; i < trajectory.size(); i++) {
+                line(frame, trajectory.get(i - 1).center, trajectory.get(i).center,
+                        color, defaultThickness, LINE_AA, 0);
             }
         }
     }
 
     @Override
     public void render(Mat frame, List<TrackedObject> trackedObjects, boolean renderScores) {
+        renderTrajectory(frame, trackedObjects);
+        renderAnomalies(frame, trackedObjects);
     }
 
     @Override

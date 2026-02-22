@@ -174,11 +174,14 @@ public class AssociativeTrackingManager implements TrackingManager {
 
     for (int i = 0; i < dets.size(); i++) {
       Rect det = dets.get(i);
+      String name = detResult.getNames().get(i);
       if (!used.contains(det)) {
         ObjectTracker tracker = ObjectTrackerFactory.getInstance().create(trackerKey);
         TrackedObject newTrack = new TrackedObject(det, scores.get(i), tracker);
+
         tracker.init(mat, Utils.rectToPoints(det));
         newTrack.setState(TrackedObject.TrackState.Tentative);
+        newTrack.setClassName(name);
 
         buffer.put(newTrack);
       }

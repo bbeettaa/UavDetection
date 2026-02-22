@@ -1,5 +1,6 @@
 package knu.app.bll.utils.processors;
 
+import knu.app.bll.algorithms.feature.ObjectState;
 import knu.app.bll.processors.tracker.single.ObjectTracker;
 import org.bytedeco.opencv.opencv_core.Rect;
 
@@ -12,13 +13,14 @@ public class TrackedObject   {
     private  int id;
     private Rect rect;
     private float score;
+    private String className;
     private int hits;
     private int missed;
     private TrackState state;
     private final ObjectTracker tracker;
     private final List<Boolean> hitHistory;
 
-    private final LinkedList<Double> velocityHistory = new LinkedList<>();
+    private final LinkedList<ObjectState> trajectory = new LinkedList<>();
 
     public enum TrackState {
         Tentative, Confirmed, Deleted
@@ -33,6 +35,7 @@ public class TrackedObject   {
         this.state = TrackState.Tentative;
         this.tracker = tracker;
         this.hitHistory = new ArrayList<>();
+        this.className = "";
     }
 
     public TrackedObject(Rect rect) {
@@ -83,13 +86,31 @@ public class TrackedObject   {
         this.missed++;
     }
 
+    public void setClassName(String className) {
+        this.className = className;
+    }
 
+    public String getClassName() {
+        return className;
+    }
 
+    public void addState(ObjectState state, int maxLen) {
+        if (state == null) return;
+        this.trajectory.add(state);
 
+        while (this.trajectory.size() > maxLen && !this.trajectory.isEmpty()) {
+            this.trajectory.remove(0);
+        }
+    }
 
+    public LinkedList<ObjectState> getTrajectory() {
+        return trajectory;
+    }
 
-
-
+    public ObjectState getLastState() {
+        if (trajectory.isEmpty()) return null;
+        return trajectory.getLast();
+    }
 
     public void resetMissed() {
         this.missed = 0;
@@ -107,7 +128,6 @@ public class TrackedObject   {
         return state == TrackState.Deleted;
     }
 
-
     public boolean isConfirmed() {
         return state == TrackState.Confirmed;
     }
@@ -121,16 +141,9 @@ public class TrackedObject   {
         return tracker;
     }
 
-
-
-
-
     public List<Boolean> getHitHistory() {
         return hitHistory;
     }
-
-
-
 
     @Override
     public boolean equals(Object o) {

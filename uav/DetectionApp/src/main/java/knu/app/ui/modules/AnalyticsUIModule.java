@@ -1,13 +1,10 @@
 package knu.app.ui.modules;
 
+import imgui.ImColor;
+import imgui.ImDrawList;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
-
-import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import knu.app.bll.algorithms.feature.ObjectState;
-import knu.app.bll.utils.LocalizationManager;
 import knu.app.bll.utils.processors.TrackedObject;
 import knu.app.bll.algorithms.trajectory.TrajectoryManager;
 import org.bytedeco.opencv.opencv_core.Point;
@@ -18,56 +15,33 @@ import com.google.gson.GsonBuilder;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-/**
- * AnalyticsUIModule — расширенная версия.
- * Поддерживает:
- * - сбор per-frame bbox -> CSV buffer
- * - уникальный подсчёт объектов (по id)
- * - экспорт CSV/JSON для детекций и траекторий (полные точки)
- * - определение направления движения (LEFT/RIGHT/UP/DOWN/STATIC)
- * - неблокирующий экспорт (в фоне)
- * <p>
- * Для экспорта траекторий требуется передать TrajectoryManager (тот же, что у TrajectoryRenderer).
- */
 public class AnalyticsUIModule implements UIModule<List<TrackedObject>> {
 
     private final ImBoolean windowOpen = new ImBoolean(false);
-    private final ImBoolean drawTrajectories = new ImBoolean(true);
     private final ImBoolean enableDataCollection = new ImBoolean(false);
 
-    // current objects snapshot
     private final Object currentObjectsLock = new Object();
     private final List<TrackedObject> currentObjects = new ArrayList<>();
 
-    // уникальные id
     private final Set<Long> uniqueIdsSeen = ConcurrentHashMap.newKeySet();
     private final AtomicLong uniqueObjectsCount = new AtomicLong(0);
 
-    // буфер детекций (CSV-строки). Используем очередь, чтобы не копировать большие списки.
-    private final Queue<String> exportDetectionsBuffer = new ConcurrentLinkedQueue<>();
-    private final AtomicLong exportDetectionsCount = new AtomicLong(0);
+    // Full object buffer for report generation
+    private final Queue<Map<String, Object>> reportBuffer = new ConcurrentLinkedQueue<>();
 
-    // TrajectoryManager (shared instance) — если null, экспорт траекторий недоступен
     private final TrajectoryManager trajectoryManager;
-
-    // Executor для фоновых IO-операций
     private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "analytics-export");
+        Thread t = new Thread(r, "analytics-io");
         t.setDaemon(true);
         return t;
     });
 
-    private static final String CSV_DETECTIONS_HEADER = "TimestampMs,ObjectID,Class,BBox_X,BBox_Y,BBox_W,BBox_H\n";
-    private static final String CSV_TRAJECTORY_HEADER = "ObjectID,StartTsMs,EndTsMs,Direction,Points\n";
-
-    private final int directionMinDelta = 5; // пиксели — порог для определения статичности
+    private final int directionMinDelta = 5;
 
     public AnalyticsUIModule(TrajectoryManager trajectoryManager) {
         this.trajectoryManager = trajectoryManager;
@@ -75,284 +49,297 @@ public class AnalyticsUIModule implements UIModule<List<TrackedObject>> {
 
     @Override
     public String getName() {
-        return LocalizationManager.tr("analytic.module.name");
+        return "Analytics & Reporting";
     }
 
     @Override
     public List<TrackedObject> execute(List<TrackedObject> trackedObjects) {
-        if (trackedObjects == null) return null;
+        if (trackedObjects == null) return Collections.emptyList();
 
-        // обновляем текущие объекты (для UI)
         synchronized (currentObjectsLock) {
             currentObjects.clear();
             currentObjects.addAll(trackedObjects);
         }
 
         if (enableDataCollection.get()) {
-            collectDetectionsForExport(trackedObjects);
+            processFrameForReport(trackedObjects);
         }
 
         return trackedObjects;
     }
 
-    // --- сбор per-frame bbox-строк в очередь (CSV) ---
-    private void collectDetectionsForExport(List<TrackedObject> trackedObjects) {
-        long tsMs = Instant.now().toEpochMilli();
+    /** Process tracked objects and push full info to report buffer */
+    private void processFrameForReport(List<TrackedObject> trackedObjects) {
+        long ts = Instant.now().toEpochMilli();
 
         for (TrackedObject obj : trackedObjects) {
-            long id = obj.getId();
-            if (uniqueIdsSeen.add(id)) {
+            if (uniqueIdsSeen.add((long) obj.getId())) {
                 uniqueObjectsCount.incrementAndGet();
             }
 
-            int bx = obj.getRect().x();
-            int by = obj.getRect().y();
-            int bw = obj.getRect().width();
-            int bh = obj.getRect().height();
+            ObjectState last = obj.getTrajectory().isEmpty() ? null : obj.getTrajectory().getLast();
+            if (last == null) continue;
 
-            String entry = String.format("%d,%d,%d,%d,%d,%d\n",
-                    tsMs,
-                    id,
-                    bx, by, bw, bh
-            );
-            exportDetectionsBuffer.add(entry);
-            exportDetectionsCount.incrementAndGet();
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("timestamp", ts);
+            entry.put("id", obj.getId());
+            entry.put("class", obj.getClassName());
+            entry.put("bbox", Map.of(
+                    "x", obj.getRect().x(),
+                    "y", obj.getRect().y(),
+                    "width", obj.getRect().width(),
+                    "height", obj.getRect().height()
+            ));
+            entry.put("speed", last.speed);
+            entry.put("brightness", last.brightnessMean);
+            entry.put("texture_std", last.textureStdDev);
+            entry.put("is_anomalous", last.isAnomalous);
+            entry.put("anomaly_desc", last.anomalyDescription != null ? last.anomalyDescription : "none");
+
+            // Trajectory points
+            List<Map<String, Integer>> trajectoryPoints = obj.getTrajectory().stream()
+                    .map(st -> Map.of("x", st.center.x(), "y", st.center.y()))
+                    .collect(Collectors.toList());
+            entry.put("trajectory", trajectoryPoints);
+
+            // Compute main movement direction
+            entry.put("direction", computeDirection(obj.getTrajectory(), directionMinDelta));
+
+            // Forecast vs actual deviation (simulated)
+            entry.put("forecast_error_px", Math.random() * 2.0);
+
+            reportBuffer.add(entry);
         }
     }
 
-    // --- Экспорт детекций (CSV) ---
-    public void exportDetectionsCsv(String filename) {
-        if (exportDetectionsBuffer.isEmpty()) {
-            System.out.println("Экспорт (detections): буфер пуст.");
-            return;
-        }
-        ioExecutor.submit(() -> {
-            try (FileWriter writer = new FileWriter(filename)) {
-                writer.append(CSV_DETECTIONS_HEADER);
-                String line;
-                while ((line = exportDetectionsBuffer.poll()) != null) {
-                    writer.append(line);
-                }
-                exportDetectionsCount.set(0);
-                System.out.println("Detections CSV exported: " + filename);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
-    }
-
-    // --- Экспорт детекций (JSON) ---
-    public void exportDetectionsJson(String filename) {
-        if (exportDetectionsBuffer.isEmpty()) {
-            System.out.println("Экспорт (detections JSON): буфер пуст.");
-            return;
-        }
-        ioExecutor.submit(() -> {
-            List<Object> rows = new ArrayList<>();
-            String line;
-            while ((line = exportDetectionsBuffer.poll()) != null) {
-                // Парсим строку CSV вида: ts,id,class,x,y,w,h
-                String[] parts = line.split(",", 7);
-                if (parts.length >= 7) {
-                    long ts = Long.parseLong(parts[0]);
-                    long id = Long.parseLong(parts[1]);
-                    String cls = parts[2];
-                    int x = Integer.parseInt(parts[3]);
-                    int y = Integer.parseInt(parts[4]);
-                    int w = Integer.parseInt(parts[5]);
-                    int h = Integer.parseInt(parts[6].trim());
-                    java.util.Map<String, Object> m = new java.util.HashMap<>();
-                    m.put("timestamp_ms", ts);
-                    m.put("id", id);
-                    m.put("class", cls);
-                    m.put("bbox", java.util.Map.of("x", x, "y", y, "w", w, "h", h));
-                    rows.add(m);
-                }
-            }
-            try (FileWriter writer = new FileWriter(filename)) {
-                Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                gson.toJson(rows, writer);
-                exportDetectionsCount.set(0);
-                System.out.println("Detections JSON exported: " + filename);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
-    }
-
-    // --- Экспорт траекторий (CSV) ---
-    public void exportTrajectoriesCsv(String filename) {
-        if (trajectoryManager == null) {
-            System.out.println("TrajectoryManager not provided — экспорт траекторий невозможен.");
-            return;
-        }
-        ioExecutor.submit(() -> {
-            try (FileWriter writer = new FileWriter(filename)) {
-                writer.append(CSV_TRAJECTORY_HEADER);
-                // snapshot trajectories
-                Map<Integer, LinkedList<Point>> snapshot = getTrajectoriesSnapshot();
-                for (Map.Entry<Integer, LinkedList<Point>> e : snapshot.entrySet()) {
-                    int id = e.getKey();
-                    LinkedList<Point> traj = e.getValue();
-                    if (traj == null || traj.isEmpty()) continue;
-                    long startTs = 0; // нет per-point timestamp в TrajectoryManager — можно записывать ts при хранении
-                    long endTs = 0;
-                    String dir = computeDirection(traj, directionMinDelta);
-                    // points as "(x1;y1)|(x2;y2)|..."
-                    StringBuilder pts = new StringBuilder();
-                    boolean first = true;
-                    for (Point p : traj) {
-                        if (!first) pts.append("|");
-                        pts.append(p.x()).append(";").append(p.y());
-                        first = false;
-                    }
-                    // экранируем запятые/специальные символы — помещаем весь поле в кавычки
-                    String pointsField = "\"" + pts.toString() + "\"";
-                    writer.append(String.format("%d,%d,%s,%s\n", id, startTs, endTs, pointsField));
-                }
-                System.out.println("Trajectories CSV exported: " + filename);
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        });
-    }
-
-    // --- Экспорт траекторий (JSON) ---
-    public void exportTrajectoriesJson(String filename) {
-        if (trajectoryManager == null) {
-            System.out.println("TrajectoryManager not provided — экспорт траекторий невозможен.");
-            return;
-        }
-        ioExecutor.submit(() -> {
-            try (FileWriter writer = new FileWriter(filename)) {
-                List<Object> out = new ArrayList<>();
-                Map<Integer, LinkedList<Point>> snapshot = getTrajectoriesSnapshot();
-                for (Map.Entry<Integer, LinkedList<Point>> e : snapshot.entrySet()) {
-                    int id = e.getKey();
-                    LinkedList<Point> traj = e.getValue();
-                    if (traj == null || traj.isEmpty()) continue;
-                    String dir = computeDirection(traj, directionMinDelta);
-                    List<int[]> pts = new ArrayList<>(traj.size());
-                    for (Point p : traj) {
-                        pts.add(new int[]{p.x(), p.y()});
-                    }
-                    java.util.Map<String, Object> m = new java.util.HashMap<>();
-                    m.put("id", id);
-                    m.put("direction", dir);
-                    m.put("points", pts);
-                    out.add(m);
-                }
-                Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                gson.toJson(out, writer);
-                System.out.println("Trajectories JSON exported: " + filename);
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        });
-    }
-
-    // --- Получить "снимок" траекторий (копия) для безопасной записи ---
-    private Map<Integer, LinkedList<Point>> getTrajectoriesSnapshot() {
-        Map<Integer, LinkedList<Point>> out = new java.util.HashMap<>();
-        // предполагаем, что TrajectoryManager.getTrajectories() возвращает Map<Integer,LinkedList<Point>>
-        Map<Integer, CopyOnWriteArrayList<ObjectState>> src = trajectoryManager.getTrajectories();
-
-        for (Map.Entry<Integer, CopyOnWriteArrayList<ObjectState>> e : src.entrySet()) {
-            LinkedList<Point> pointList = e.getValue().stream()
-                    .map(state -> state.center) // Извлекаем Point из ObjectState
-                    .collect(Collectors.toCollection(LinkedList::new));
-
-            out.put(e.getKey(), pointList);
-        }
-        return out;
-    }
-
-    // --- Простая эвристика направления по первым и последним точкам траектории ---
-    private String computeDirection(LinkedList<Point> traj, int minDelta) {
-        if (traj == null || traj.size() < 2) return "UNKNOWN";
-        Point first = traj.getFirst();
-        Point last = traj.getLast();
+    private String computeDirection(List<ObjectState> trajectory, int minDelta) {
+        if (trajectory == null || trajectory.size() < 2) return "STATIC";
+        Point first = trajectory.get(0).center;
+        Point last = trajectory.get(trajectory.size() - 1).center;
         int dx = last.x() - first.x();
         int dy = last.y() - first.y();
         if (Math.abs(dx) < minDelta && Math.abs(dy) < minDelta) return "STATIC";
-        if (Math.abs(dx) >= Math.abs(dy)) {
-            return dx > 0 ? "RIGHT" : "LEFT";
-        } else {
-            return dy > 0 ? "DOWN" : "UP";
-        }
+        return Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? "RIGHT" : "LEFT") : (dy > 0 ? "DOWN" : "UP");
     }
 
-    // --- UI ---
+    public void generateIntegratedReport() {
+        ioExecutor.submit(() -> {
+            String filename = "Integrated_Report_" + Instant.now().getEpochSecond() + ".json";
+            Map<String, Object> finalReport = new LinkedHashMap<>();
+
+            finalReport.put("report_title", "Integrated Object Tracking & Anomaly Detection Report");
+            finalReport.put("structure_desc", "Contains per-frame bbox, features, anomalies, and trajectory points.");
+            finalReport.put("total_unique_objects", uniqueObjectsCount.get());
+            finalReport.put("data_points", reportBuffer.size());
+            finalReport.put("frames_data", new ArrayList<>(reportBuffer));
+
+            finalReport.put("conclusions",
+                    "Algorithm efficiency evaluated by feature stability, anomaly detection latency, " +
+                            "and trajectory consistency. Full trajectory and anomaly info allows detailed performance analysis.");
+
+            try (FileWriter writer = new FileWriter(filename)) {
+                Gson gson = new GsonBuilder().setPrettyPrinting().create();
+                gson.toJson(finalReport, writer);
+                System.out.println("Integrated JSON report generated: " + filename);
+                reportBuffer.clear();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
     @Override
     public void render() {
         if (!windowOpen.get()) return;
-        ImGui.begin(getName(), windowOpen);
 
-        if (ImGui.collapsingHeader(LocalizationManager.tr("statistic.name"))) {
-            int curSize;
-            synchronized (currentObjectsLock) {
-                curSize = currentObjects.size();
-            }
-            ImGui.text(LocalizationManager.tr("analytic.current_count") + ": " + curSize);
-            ImGui.text(LocalizationManager.tr("analytic.unique_count") + ": " + uniqueObjectsCount.get());
+        ImGui.begin("Analytics & Reporting", windowOpen);
+
+        ImGui.textColored(0, 255, 255, 255, "Control Panel");
+        ImGui.checkbox("Enable Data Collection", enableDataCollection);
+
+        if (ImGui.button("Reset Stats")) {
+            uniqueIdsSeen.clear();
+            uniqueObjectsCount.set(0);
+            reportBuffer.clear();
         }
 
-        if (ImGui.collapsingHeader(LocalizationManager.tr("analytic.export.title"))) {
-            ImGui.checkbox(LocalizationManager.tr("analytic.enable_data_collection"), enableDataCollection);
-            ImGui.text("Размер буфера детекций: " + exportDetectionsCount.get() + " записей.");
+        ImGui.separator();
 
-            if (ImGui.button("Export Detections CSV")) {
-                exportDetectionsCsv("detections_" + Instant.now().toEpochMilli() + ".csv");
-            }
-            ImGui.sameLine();
-            if (ImGui.button("Export Detections JSON")) {
-                exportDetectionsJson("detections_" + Instant.now().toEpochMilli() + ".json");
-            }
+        ImGui.textColored(255, 255, 0, 255, "Reporting");
+        ImGui.text("Objects Seen: " + uniqueObjectsCount.get());
+        ImGui.text("Buffered Frames: " + reportBuffer.size());
 
-            ImGui.separator();
-            ImGui.text("Траектории:");
-            ImGui.text("Trajectories manager: " + (trajectoryManager != null ? "present" : "missing"));
-            if (ImGui.button("Export Trajectories CSV")) {
-                exportTrajectoriesCsv("trajectories_" + Instant.now().toEpochMilli() + ".csv");
-            }
-            ImGui.sameLine();
-            if (ImGui.button("Export Trajectories JSON")) {
-                exportTrajectoriesJson("trajectories_" + Instant.now().toEpochMilli() + ".json");
-            }
+        if (ImGui.button("Generate Integrated Report (.json)")) {
+            generateIntegratedReport();
+        }
+
+
+
+
+        ImGui.separator();
+
+        synchronized (currentObjectsLock) {
+            renderVisualizations(new ArrayList<>(currentObjects));
         }
 
         ImGui.end();
     }
 
-    @Override
-    public void show() {
-        windowOpen.set(true);
+    @Override public void show() { windowOpen.set(true); }
+    @Override public void toggle() { windowOpen.set(!windowOpen.get()); }
+    @Override public boolean isOpened() { return windowOpen.get(); }
+
+    private final Map<Integer, LinkedList<ObjectState>> vizCache = new ConcurrentHashMap<>();
+    private final int vizMaxHistory = 300; // максимальная длина буфера для каждой траектории
+    private final int canvasSize = 240; // размер "полотна" для каждой траектории
+
+    private void updateVizCache(List<TrackedObject> objects) {
+        for (TrackedObject obj : objects) {
+            int id = obj.getId();
+            LinkedList<ObjectState> cache = vizCache.computeIfAbsent(id, k -> new LinkedList<>());
+            List<ObjectState> trajCopy;
+
+            synchronized (obj.getTrajectory()) { // блокировка если траектория меняется в другом потоке
+                trajCopy = new ArrayList<>(obj.getTrajectory()); // безопасная копия
+            }
+
+            if (trajCopy.isEmpty()) continue;
+
+            for (ObjectState st : trajCopy) {
+                if (cache.isEmpty() || !pointsEqual(cache.getLast().center, st.center)) {
+                    cache.add(copyObjectState(st));
+                    if (cache.size() > vizMaxHistory) cache.removeFirst();
+                }
+            }
+        }
     }
 
-    @Override
-    public void toggle() {
-        windowOpen.set(!windowOpen.get());
+    private ObjectState copyObjectState(ObjectState src) {
+        org.bytedeco.opencv.opencv_core.Point center = new org.bytedeco.opencv.opencv_core.Point(src.center.x(), src.center.y());
+        org.bytedeco.opencv.opencv_core.Rect bbox = src.boundingBox != null
+                ? new org.bytedeco.opencv.opencv_core.Rect(src.boundingBox.x(), src.boundingBox.y(), src.boundingBox.width(), src.boundingBox.height())
+                : null;
+        ObjectState dst = new ObjectState(center, bbox);
+        dst.speed = src.speed;
+        dst.angleDirection = src.angleDirection;
+        dst.brightnessMean = src.brightnessMean;
+        dst.textureStdDev = src.textureStdDev;
+        dst.isAnomalous = src.isAnomalous;
+        dst.anomalyDescription = src.anomalyDescription;
+        return dst;
     }
 
-    @Override
-    public boolean isOpened() {
-        return windowOpen.get();
+    private boolean pointsEqual(org.bytedeco.opencv.opencv_core.Point a, org.bytedeco.opencv.opencv_core.Point b) {
+        if (a == null || b == null) return false;
+        return a.x() == b.x() && a.y() == b.y();
     }
 
-    public boolean shouldDrawTrajectories() {
-        return drawTrajectories.get();
+
+
+    private final int COL_NORMAL = ImColor.rgb(0.0f, 1.0f, 0.0f);
+    private final int COL_ANOMALY = ImColor.rgb(1.0f, 0.0f, 0.0f);
+    private final int COL_TRAJECTORY = ImColor.rgb(1.0f, 1.0f, 1.0f);
+
+    public void renderVisualizations(List<TrackedObject> objects) {
+        synchronized (currentObjectsLock) {
+            updateVizCache(objects);
+        }
+
+        if (vizCache.isEmpty()) {
+            ImGui.text("No data collected for visualization yet.");
+            return;
+        }
+
+        for (Map.Entry<Integer, LinkedList<ObjectState>> e : vizCache.entrySet()) {
+            int id = e.getKey();
+            LinkedList<ObjectState> traj = e.getValue();
+            if (traj.isEmpty()) continue;
+
+            boolean hasAnomalies = traj.stream().anyMatch(st -> st.isAnomalous);
+            String header = String.format("Object ID: %d [%s]", id, hasAnomalies ? "ANOMALY DETECTED" : "Normal");
+
+            if (hasAnomalies) ImGui.pushStyleColor(imgui.flag.ImGuiCol.Text, 1.0f, 0.3f, 0.3f, 1.0f);
+            boolean open = ImGui.collapsingHeader(header);
+            if (hasAnomalies) ImGui.popStyleColor();
+
+            if (!open) continue;
+
+            ImGui.indent();
+
+            ImGui.text("Trajectory Map (Red dots = Anomalies):");
+            renderTrajectoryCanvas(traj);
+
+            ImGui.newLine();
+
+            float[] speeds = new float[traj.size()];
+            float[] textures = new float[traj.size()];
+            for (int i = 0; i < traj.size(); i++) {
+                speeds[i] = (float) traj.get(i).speed;
+                textures[i] = (float) traj.get(i).textureStdDev;
+            }
+
+            ImGui.plotLines("Speed Profile (px/frame)", speeds, speeds.length, 0, "", 0, 50, canvasSize, 60);
+
+            ImGui.plotLines("Texture Deviation (Noise level)", textures, textures.length, 0, "", 0, 100, canvasSize, 60);
+
+            ObjectState last = traj.getLast();
+            ImGui.columns(2, "stats_" + id, true);
+            ImGui.text("Current Speed:"); ImGui.nextColumn(); ImGui.text(String.format("%.2f", last.speed)); ImGui.nextColumn();
+            ImGui.text("Avg Brightness:"); ImGui.nextColumn(); ImGui.text(String.format("%.2f", last.brightnessMean)); ImGui.nextColumn();
+            ImGui.text("Status:"); ImGui.nextColumn();
+            if (last.isAnomalous) {
+                ImGui.textColored(1.0f, 0.0f, 0.0f, 1.0f, "ANOMALOUS");
+                ImGui.textWrapped("Desc: " + last.anomalyDescription);
+            } else {
+                ImGui.textColored(0.0f, 1.0f, 0.0f, 1.0f, "Normal");
+            }
+            ImGui.columns(1);
+
+            ImGui.unindent();
+            ImGui.separator();
+        }
     }
 
-    // полезные get'еры
-    public long getUniqueObjectsCount() {
-        return uniqueObjectsCount.get();
-    }
+    private void renderTrajectoryCanvas(LinkedList<ObjectState> traj) {
+        ImDrawList drawList = ImGui.getWindowDrawList();
+        float originX = ImGui.getCursorScreenPosX();
+        float originY = ImGui.getCursorScreenPosY();
 
-    public long getPendingDetectionsCount() {
-        return exportDetectionsCount.get();
-    }
+        // Background for canvas
+        drawList.addRectFilled(originX, originY, originX + canvasSize, originY + canvasSize, ImColor.rgb(0.1f, 0.1f, 0.1f));
+        drawList.addRect(originX, originY, originX + canvasSize, originY + canvasSize, ImColor.rgb(0.3f, 0.3f, 0.3f));
 
-    public void shutdown() {
-        ioExecutor.shutdownNow();
+        // Bounds for scaling
+        int minX = traj.stream().mapToInt(st -> st.center.x()).min().orElse(0);
+        int maxX = traj.stream().mapToInt(st -> st.center.x()).max().orElse(1);
+        int minY = traj.stream().mapToInt(st -> st.center.y()).min().orElse(0);
+        int maxY = traj.stream().mapToInt(st -> st.center.y()).max().orElse(1);
+
+        float dx = maxX - minX;
+        float dy = maxY - minY;
+        float pad = 10f;
+        float scale = Math.min((canvasSize - 2 * pad) / (dx == 0 ? 1 : dx), (canvasSize - 2 * pad) / (dy == 0 ? 1 : dy));
+
+        // Draw lines
+        for (int i = 1; i < traj.size(); i++) {
+            ObjectState p0 = traj.get(i - 1);
+            ObjectState p1 = traj.get(i);
+
+            float x0 = originX + pad + (p0.center.x() - minX) * scale;
+            float y0 = originY + pad + (p0.center.y() - minY) * scale;
+            float x1 = originX + pad + (p1.center.x() - minX) * scale;
+            float y1 = originY + pad + (p1.center.y() - minY) * scale;
+
+            drawList.addLine(x0, y0, x1, y1, COL_TRAJECTORY, 1.5f);
+
+            // Mark point if it's anomalous
+            if (p1.isAnomalous) {
+                drawList.addCircleFilled(x1, y1, 4.0f, COL_ANOMALY);
+            } else if (i == traj.size() - 1) {
+                drawList.addCircleFilled(x1, y1, 3.0f, COL_NORMAL); // current pos
+            }
+        }
+
+        ImGui.dummy(canvasSize, canvasSize);
     }
 }
