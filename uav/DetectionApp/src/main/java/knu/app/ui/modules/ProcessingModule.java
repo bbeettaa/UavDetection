@@ -7,19 +7,10 @@ import imgui.type.ImInt;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import knu.app.Main;
 import knu.app.bll.mot.TrackingManager;
 import knu.app.bll.processors.detection.*;
-//import knu.app.bll.processors.tracker.multi.ByteTrackGrpcTracker;
 import knu.app.bll.utils.LocalizationManager;
 import knu.app.bll.utils.MatWrapper;
 import knu.app.bll.utils.MetricsEvaluator;
@@ -33,7 +24,6 @@ import knu.app.ui.processings.renders.FeaturedPointsRendererUI;
 import knu.app.ui.processings.renders.RendererUI;
 import knu.app.ui.processings.renders.RoiRendererUI;
 import knu.app.ui.processings.renders.TrajectoryRendererUI;
-//import knu.app.ui.processings.trackers.ByteTrackTrackerUi;
 import org.bytedeco.opencv.opencv_core.Mat;
 
 public class ProcessingModule implements UIModule<MatWrapper> {
@@ -216,11 +206,6 @@ public class ProcessingModule implements UIModule<MatWrapper> {
         }
 
         if (trackedObjects != null) trajectoryRender.getRenderer().update(mat, trackedObjects);
-//        if (drawTrajectory.get()) trajectoryRender.getRenderer().renderTrajectory(mat);
-//        if (drawSpeedTrajectory.get()) trajectoryRender.getRenderer().renderSpeed(mat);
-//        if (drawDirectionTrajectory.get()) trajectoryRender.getRenderer().renderDirection(mat);
-//        if (drawDirectionTrajectory.get()) trajectoryRender.getRenderer().renderAnomalies(mat);
-
 
         if (trackedObjects != null) {
             if (drawTrajectory.get()) {
@@ -260,5 +245,4 @@ public class ProcessingModule implements UIModule<MatWrapper> {
     public boolean isOpened() {
         return isOp.get();
     }
-
 }

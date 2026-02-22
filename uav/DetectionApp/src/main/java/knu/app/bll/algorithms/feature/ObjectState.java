@@ -11,12 +11,9 @@ public class ObjectState {
     public Point center;
     public Rect boundingBox;
 
-    // 1. Геометричні ознаки та розмір
     public double area;
     public double aspectRatio;
-    public double circularity; // міра "круглості" форми
 
-    // 2. Кінематичні ознаки
     public double speed;
     public double angleDirection;
 

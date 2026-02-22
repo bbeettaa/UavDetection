@@ -18,7 +18,6 @@ public class TrajectoryManager {
 
     private int maxLength;
     private int selectedTrack = -1;
-    private final AnomalyClassifier anomalyClassifier;
 
     private final List<AnomalyClassifier> detectors = List.of(
             new StatisticalThresholdAnomaly(),
@@ -30,9 +29,8 @@ public class TrajectoryManager {
     );
     private int activeDetectorIndex = 0;
 
-    public TrajectoryManager(int maxLength, AnomalyClassifier anomalyClassifier) {
+    public TrajectoryManager(int maxLength) {
         this.maxLength = maxLength;
-        this.anomalyClassifier = anomalyClassifier;
     }
 
     public void updateTrajectory(Mat frame, List<TrackedObject> trackedObjects) {

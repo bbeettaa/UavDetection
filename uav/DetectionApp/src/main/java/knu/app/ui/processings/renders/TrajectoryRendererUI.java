@@ -1,7 +1,6 @@
 package knu.app.ui.processings.renders;
 
 import imgui.ImGui;
-import imgui.type.ImFloat;
 import imgui.type.ImInt;
 import knu.app.bll.algorithms.trajectory.TrajectoryManager;
 import knu.app.bll.processors.draw.TrajectoryRenderer;
@@ -12,7 +11,6 @@ public class TrajectoryRendererUI extends RendererUI {
   private final ImInt thickness;
   private final ImInt historyLength;
   private TrajectoryRenderer renderer;
-  private final ImFloat sensitivity = new ImFloat(1.0f);
 
   public TrajectoryRendererUI(TrajectoryRenderer renderer) {
     super(renderer, LocalizationManager.tr("processor.draw.type.trajectory"));
@@ -37,10 +35,6 @@ public class TrajectoryRendererUI extends RendererUI {
         if (isSelected) ImGui.setItemDefaultFocus();
       }
       ImGui.endCombo();
-    }
-
-    if (ImGui.sliderFloat("Sensitivity##" + id, sensitivity.getData(), 0.1f, 5.0f)) {
-      manager.setSensitivity(sensitivity.get());
     }
 
     ImGui.separator();

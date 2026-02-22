@@ -82,7 +82,7 @@ public class Pipeline {
     private final List<UIModule<?>> uiModules = new ArrayList<>();
     private final StatisticDisplayUI stat = StatisticDisplayUI.getEntity();
     private final MetricsUIModule metrics = new MetricsUIModule();
-    TrajectoryManager trajectoryManager = new TrajectoryManager(60, new StatisticalThresholdAnomaly());
+    TrajectoryManager trajectoryManager = new TrajectoryManager(60);
     private final CurrentObjectsUIModule currentObjectsUIModule = new CurrentObjectsUIModule(trajectoryManager);
 
     private PureVideoGrabber videoGrabber;
@@ -98,18 +98,12 @@ public class Pipeline {
     public Pipeline(int bufferCapacity, Mat singleDescriptor, String hogDescriptorFile,
                     HogSvmDetectorConfig hogSvmDetectorConfig) {
         registrationFactoryTrackers();
-
-        // Suggest using small bufferCapacity (e.g., 5-10) to minimize latency
-        // If latency is 5s, and FPS=30, bufferCapacity ~150 would cause it; reduce it
         initModules(bufferCapacity, singleDescriptor, hogDescriptorFile, hogSvmDetectorConfig);
-
-        // Warm-up the processing UI (e.g., YOLO gRPC) with a dummy frame to avoid initial delay
         warmUpProcessing();
     }
 
     private void warmUpProcessing() {
         try {
-            // Create a small dummy Mat (e.g., 1x1)
             Mat dummyMat = new Mat(1, 1, org.bytedeco.opencv.global.opencv_core.CV_8UC3);
             MatWrapper dummyWrapper = new MatWrapper(0, dummyMat);
             processingUi.execute(dummyWrapper);

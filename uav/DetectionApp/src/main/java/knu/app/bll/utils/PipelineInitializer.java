@@ -79,7 +79,7 @@ public class PipelineInitializer {
     private final StatisticDisplayUI stat = StatisticDisplayUI.getEntity();
     private final MetricsUIModule metrics = new MetricsUIModule();
     private final List<Future<?>> renderTasks = new ArrayList<>(); // Добавляем список для рендеринга
-    TrajectoryManager trajectoryManager = new TrajectoryManager(60, new StatisticalThresholdAnomaly());
+    TrajectoryManager trajectoryManager = new TrajectoryManager(60);
     private final CurrentObjectsUIModule currentObjectsUIModule = new CurrentObjectsUIModule(
             trajectoryManager);
     private volatile int currentGrabThreads = 1;
