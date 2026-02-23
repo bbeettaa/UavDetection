@@ -1,6 +1,7 @@
 package knu.app.bll.utils.processors;
 
 import knu.app.bll.algorithms.feature.ObjectState;
+import knu.app.bll.algorithms.kalman.AccelerationKalmanFilter;
 import knu.app.bll.processors.tracker.single.ObjectTracker;
 import org.bytedeco.opencv.opencv_core.Rect;
 
@@ -18,6 +19,7 @@ public class TrackedObject   {
     private int missed;
     private TrackState state;
     private final ObjectTracker tracker;
+    private  AccelerationKalmanFilter predictor = new AccelerationKalmanFilter();
     private final List<Boolean> hitHistory;
 
     private final LinkedList<ObjectState> trajectory = new LinkedList<>();
@@ -154,5 +156,9 @@ public class TrackedObject   {
     @Override
     public int hashCode() {
         return Objects.hashCode(rect);
+    }
+
+    public AccelerationKalmanFilter getPredictor() {
+        return predictor;
     }
 }

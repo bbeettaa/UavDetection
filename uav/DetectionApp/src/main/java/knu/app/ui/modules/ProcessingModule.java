@@ -10,6 +10,7 @@ import java.util.List;
 
 import knu.app.Main;
 import knu.app.bll.mot.TrackingManager;
+import knu.app.bll.postprocessors.PredictionOverlayPostprocessor;
 import knu.app.bll.processors.detection.*;
 import knu.app.bll.utils.LocalizationManager;
 import knu.app.bll.utils.MatWrapper;
@@ -35,11 +36,14 @@ public class ProcessingModule implements UIModule<MatWrapper> {
     private final ImInt selectedDetector = new ImInt(-1);
     private final ImInt selectedTrackerManager = new ImInt(1);
     private final List<DetectorUI> detectors = new ArrayList<>();
+    private final int[] predHorizont = new int[1];
+
     private final ImBoolean drawDetections = new ImBoolean(true);
     private final ImBoolean drawTracking = new ImBoolean(true);
     private final ImBoolean drawTrajectory = new ImBoolean(false);
     private final ImBoolean drawSpeedTrajectory = new ImBoolean(false);
     private final ImBoolean drawDirectionTrajectory = new ImBoolean(false);
+    private final ImBoolean drawPrediction = new ImBoolean(false);
 
     private final List<RendererUI> renderers = new ArrayList<>();
     private final ImInt selectedDetectorRendererIndex = new ImInt(2);
@@ -50,18 +54,25 @@ public class ProcessingModule implements UIModule<MatWrapper> {
     private TrackingManager trackingManager;
     private DetectionResult detectionResult = new DetectionResult();
     private String[] rendererNames;
+
     private MetricsEvaluator metrics;
     private AnalyticsUIModule analyticsUIModule;
+    private final PredictionOverlayPostprocessor predictionOverlay;
+
 
     public ProcessingModule(List<TrackingManager> trackingManagers, Mat templateImg,
                             String hogDescriptorFile, HogSvmDetectorConfig hogSvmDetectorConfig,
-                            MetricsEvaluator metrics, AnalyticsUIModule analyticsUIModule, TrajectoryRendererUI trajectoryRender) {
+                            MetricsEvaluator metrics, AnalyticsUIModule analyticsUIModule,
+                            TrajectoryRendererUI trajectoryRender, PredictionOverlayPostprocessor predictionOverlay) {
         init(templateImg, hogDescriptorFile, hogSvmDetectorConfig);
         this.metrics = metrics;
         this.trackingManagers = trackingManagers;
         this.trackingManager = trackingManagers.get(selectedTrackerManager.get());
         this.analyticsUIModule = analyticsUIModule;
         this.trajectoryRender = trajectoryRender;
+        this.predictionOverlay = predictionOverlay;
+
+        predHorizont[0] = predictionOverlay.getPredictionHorizon();
     }
 
     private static void imGuiSeparate() {
@@ -107,6 +118,8 @@ public class ProcessingModule implements UIModule<MatWrapper> {
         renderDetectors();
         ImGui.newLine();
         renderTrackingManager();
+        ImGui.newLine();
+        renderPredictionSettings();
         ImGui.newLine();
         renderDrawingSettings();
         ImGui.newLine();
@@ -171,12 +184,19 @@ public class ProcessingModule implements UIModule<MatWrapper> {
 
             imGuiSeparate();
 
-
             ImGui.checkbox(LocalizationManager.tr("processor.draw.direction.enable") + "##" + "trajectory", drawDirectionTrajectory);
             ImGui.checkbox(LocalizationManager.tr("processor.draw.speed.enable") + "##" + "trajectory", drawSpeedTrajectory);
             ImGui.checkbox(LocalizationManager.tr("processor.draw.trajectory.enable") + "##" + "trajectory",
                     drawTrajectory);
             trajectoryRender.renderSettings("trajectory");
+        }
+    }
+
+    private void renderPredictionSettings(){
+        if (ImGui.collapsingHeader("Prediction" + "##prediction", ImGuiTreeNodeFlags.DefaultOpen)) {
+            ImGui.checkbox("Prediction Enable" + "##" + "trajectory", drawPrediction);
+            if(ImGui.sliderInt("Prediction Horizont", predHorizont, 0, 100))
+                predictionOverlay.setPredictionHorizon(predHorizont[0]);
         }
     }
 
@@ -221,6 +241,12 @@ public class ProcessingModule implements UIModule<MatWrapper> {
                 trajectoryRender.getRenderer().renderAnomalies(mat, trackedObjects);
             }
         }
+
+        if (trackedObjects != null && drawPrediction.get()) {
+            predictionOverlay.setValue(trackedObjects);
+            predictionOverlay.process(mat);
+        }
+
 
         if (trackedObjects != null) {
             metrics.evaluate(matWrapper.frameIndex,

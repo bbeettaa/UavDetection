@@ -5,14 +5,21 @@ import org.bytedeco.opencv.opencv_core.Point2f;
 
 public interface IKalmanFilter {
 
-  void reset(Point2f initialPosition);
+    void reset(Point2f initialPosition);
 
-  Point2f update(Point2f measurement);
+    Point2f update(Point2f measurement);
 
-  void releaseResources();
+//    void releaseResources();
 
-  Mat getState();
+    Mat getState();
 
-  void setDt(float dt);
+    void setDt(float dt);
 
+
+
+    Point2f predict();
+
+    Mat saveState();
+
+    void restoreState(Mat state);
 }

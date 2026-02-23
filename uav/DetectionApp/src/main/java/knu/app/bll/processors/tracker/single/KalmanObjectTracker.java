@@ -2,7 +2,7 @@ package knu.app.bll.processors.tracker.single;
 
 import knu.app.bll.algorithms.kalman.AccelerationKalmanFilter;
 import knu.app.bll.algorithms.kalman.IKalmanFilter;
-import knu.app.bll.algorithms.kalman.TransitionMatrixIKalmanFilter;
+//import knu.app.bll.algorithms.kalman.TransitionMatrixIKalmanFilter;
 import knu.app.bll.utils.Utils;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Point2f;
@@ -63,7 +63,6 @@ public class KalmanObjectTracker implements ObjectTracker {
 
     @Override
     public void close() {
-        transitionMatrixIKalmanFilter.releaseResources();
         isInitialized = false;
     }
 

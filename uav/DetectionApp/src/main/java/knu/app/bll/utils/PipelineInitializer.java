@@ -13,7 +13,6 @@ import java.util.logging.Logger;
 import knu.app.Main;
 import knu.app.bll.algorithms.associative.AssociationAlgorithm;
 import knu.app.bll.algorithms.associative.HungarianIoUAssociationJGraphT;
-import knu.app.bll.algorithms.feature.anomaly.StatisticalThresholdAnomaly;
 import knu.app.bll.algorithms.trajectory.TrajectoryManager;
 import knu.app.bll.buffers.BufferElement;
 import knu.app.bll.buffers.BufferableQueue;
@@ -24,6 +23,7 @@ import knu.app.bll.grabbers.PlaybackControlVideoSource;
 import knu.app.bll.mot.AssociativeTrackingManager;
 import knu.app.bll.mot.ImplementedTrackingManager;
 import knu.app.bll.mot.TrackingManager;
+import knu.app.bll.postprocessors.PredictionOverlayPostprocessor;
 import knu.app.bll.preprocessors.BlurPreprocessor;
 import knu.app.bll.preprocessors.CannyPreprocessor;
 import knu.app.bll.preprocessors.DbscanPreprocessor;
@@ -197,7 +197,7 @@ public class PipelineInitializer {
 
         UIModule<MatWrapper> processingUi = new ProcessingModule(trackingManagers, descriptorFile,
                 hogDescriptorFile, hogSvmDetectorConfig, metrics.getEvaluator(), analyticsUIModule,
-                trajectoryRendererUI);
+                trajectoryRendererUI, new PredictionOverlayPostprocessor());
 
         createPipeline(videoGrabber, frameReaderBuffer, frameWriterBuffer, videoRenderer,
                 preprocessingUi, processingBuffer, processingUi);

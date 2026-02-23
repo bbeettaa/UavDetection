@@ -84,7 +84,8 @@ public class PreprocessorUiModule implements UIModule<MatWrapper> {
 
     resolutions = new Resolution[]{
         new Resolution("1920x1080", 1920, 1080),
-        new Resolution("1280x720", 1280, 720),
+            new Resolution("1280x720", 1280, 720),
+            new Resolution("1238x374", 1238, 374),
         new Resolution("640x480", 640, 480)
     };
   }
