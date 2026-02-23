@@ -1,11 +1,7 @@
 package knu.app.bll.algorithms.feature;
 
-import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Point;
 import org.bytedeco.opencv.opencv_core.Rect;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class ObjectState {
     public Point center;

@@ -140,7 +140,6 @@ public class PlaybackControlFFmpegFrameGrabberVideoSource implements PlaybackCon
     if (grabber == null) {
       start();
     }
-//        return grabWithSleep();
     return grabWithTimestamps();
   }
 

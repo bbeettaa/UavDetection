@@ -246,10 +246,9 @@ public class AnalyticsUIModule implements UIModule<List<TrackedObject>> {
             if (hasAnomalies) ImGui.popStyleColor();
 
             if (!open) continue;
-
             ImGui.indent();
-
             ImGui.text("Trajectory Map (Red dots = Anomalies):");
+
             renderTrajectoryCanvas(traj);
             renderSpeedAndTexture(traj);
             renderDirectionHistogram(traj);
@@ -377,54 +376,46 @@ public class AnalyticsUIModule implements UIModule<List<TrackedObject>> {
         float originX = ImGui.getCursorScreenPosX();
         float originY = ImGui.getCursorScreenPosY();
 
-        // Размер сетки
         int gridSize = 8;
         int gridWidth = canvasSize / gridSize;
         int gridHeight = canvasSize / gridSize;
 
-        // Буфер тепловой карты
         float[][] heatmap = new float[gridWidth][gridHeight];
 
-        // Привязываем координаты к кадру видео
         float scaleX = (float) canvasSize / videoWidth;
         float scaleY = (float) canvasSize / videoHeight;
 
-        // Заполняем heatmap
         for (ObjectState st : traj) {
             int gx = Math.min(gridWidth - 1, Math.max(0, (int) (st.center.x() * scaleX / gridSize)));
             int gy = Math.min(gridHeight - 1, Math.max(0, (int) (st.center.y() * scaleY / gridSize)));
 
-            // Увеличиваем “интенсивность” клетки
             heatmap[gx][gy] += 1.0f;
         }
 
-        // Находим максимальное значение для нормализации
         float maxVal = 0.0f;
         for (int x = 0; x < gridWidth; x++)
             for (int y = 0; y < gridHeight; y++)
                 if (heatmap[x][y] > maxVal) maxVal = heatmap[x][y];
         if (maxVal == 0.0f) maxVal = 1.0f;
 
-        // Рисуем плавную карту (каждая клетка слегка размазывается на соседей)
         for (int x = 0; x < gridWidth; x++) {
             for (int y = 0; y < gridHeight; y++) {
                 float val = heatmap[x][y];
 
-                // Добавим простое размытие соседями
                 float sum = val;
                 int count = 1;
                 for (int dx = -1; dx <= 1; dx++) {
                     for (int dy = -1; dy <= 1; dy++) {
                         int nx = x + dx, ny = y + dy;
                         if (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight && (dx != 0 || dy != 0)) {
-                            sum += heatmap[nx][ny] * 0.5f; // соседям меньший вес
+                            sum += heatmap[nx][ny] * 0.5f;
                             count += 0.5f;
                         }
                     }
                 }
                 float intensity = Math.min(1.0f, sum / count / maxVal);
 
-                if (intensity > 0.01f) { // рисуем только заметные зоны
+                if (intensity > 0.01f) {
                     drawList.addRectFilled(
                             originX + x * gridSize, originY + (gridHeight - y - 1) * gridSize,
                             originX + (x + 1) * gridSize, originY + (gridHeight - y) * gridSize,

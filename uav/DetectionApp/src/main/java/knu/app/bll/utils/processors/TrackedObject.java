@@ -20,7 +20,7 @@ public class TrackedObject   {
     private int missed;
     private TrackState state;
     private final ObjectTracker tracker;
-    private  AccelerationKalmanFilter predictor = new AccelerationKalmanFilter();
+    private final   AccelerationKalmanFilter predictor;
     private final List<Boolean> hitHistory;
 
     private final CopyOnWriteArrayList<ObjectState> trajectory = new CopyOnWriteArrayList<>();
@@ -39,6 +39,7 @@ public class TrackedObject   {
         this.tracker = tracker;
         this.hitHistory = new ArrayList<>();
         this.className = "";
+        predictor = new AccelerationKalmanFilter();
     }
 
     public TrackedObject(Rect rect) {

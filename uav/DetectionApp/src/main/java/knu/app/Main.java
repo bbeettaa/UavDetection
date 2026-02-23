@@ -29,7 +29,6 @@ public class Main {
 
 
     public static void main(String[] args) {
-//        String singleDescriptorFile = "src/main/resources/drone.jpg";
         System.out.println("Working dir: " + System.getProperty("user.dir"));
 
         String singleDescriptorFile = "uav/DetectionApp/src/main/resources/bss-holland-vector.jpg";

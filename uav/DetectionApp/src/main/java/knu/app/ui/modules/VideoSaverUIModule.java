@@ -118,22 +118,18 @@ public class VideoSaverUIModule implements UIModule<MatWrapper> {
 
   @Override
   public MatWrapper execute(MatWrapper record) {
-    // Called for every processed frame in pipeline
     if (record == null || record.mat == null) return null;
 
     if (recordingRequested.get()) {
-      // clone mat to avoid race with renderer - push clone into queue
       Mat copy = record.mat.clone();
       boolean offered = queue.offer(copy);
       if (!offered) {
-        // queue full -> drop oldest to make room
         Mat dropped = queue.poll();
         if (dropped != null) {
           dropped.release();
         }
         boolean offered2 = queue.offer(copy);
         if (!offered2) {
-          // failed again — drop this new frame
           copy.release();
           droppedCount.incrementAndGet();
         }
@@ -157,7 +153,6 @@ public class VideoSaverUIModule implements UIModule<MatWrapper> {
     return windowOpen.get();
   }
 
-  // --- worker / recorder control ---
 
   private synchronized void startWorker() {
     if (running.get()) return;
@@ -169,7 +164,6 @@ public class VideoSaverUIModule implements UIModule<MatWrapper> {
 
   private synchronized void stopRecording() {
     recordingRequested.set(false);
-    // worker will flush and stop recorder
     status = "Stopping...";
   }
 
@@ -179,68 +173,56 @@ public class VideoSaverUIModule implements UIModule<MatWrapper> {
       long startTimeNs = System.nanoTime();
 
       while (running.get()) {
-        // if not requested, but recorder active, we need to flush queue then stop
         if (!recordingRequested.get()) {
-          // flush remaining frames and stop recorder if active
           drainQueueToRecorder();
           if (recorderActive.get()) {
             stopAndReleaseRecorder();
           }
-          // stop the worker thread loop
           running.set(false);
           status = "Idle";
           break;
         }
 
-        // wait for next frame (timeout to check recordingRequested periodically)
         Mat mat = queue.poll(200, TimeUnit.MILLISECONDS);
         if (mat == null) {
           continue;
         }
 
-        // initialize recorder lazily on first frame
         if (!recorderActive.get()) {
           boolean ok = initRecorderFromMat(mat);
           if (!ok) {
-            // failed to init; drop mat and continue
             mat.release();
             droppedCount.incrementAndGet();
             continue;
           }
         }
 
-        // convert and record
         try {
           org.bytedeco.javacv.Frame frame = converter.convert(mat);
           recorder.record(frame);
           framesWritten++;
         } catch (Exception e) {
           e.printStackTrace();
-          // if encoding fails, try to continue
         } finally {
           mat.release();
         }
 
-        // periodically compute approximate recorded FPS
         long now = System.nanoTime();
         double elapsed = (now - startTimeNs) / 1_000_000_000.0;
         if (elapsed >= 1.0) {
           recordedFps = framesWritten / elapsed;
-          // reset counters
           startTimeNs = now;
           framesWritten = 0;
         }
-      } // while
+      }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     } finally {
-      // ensure cleanup
       if (recorderActive.get()) {
         try {
           stopAndReleaseRecorder();
         } catch (Exception ignored) {}
       }
-      // release any remaining mats in queue
       Mat leftover;
       while ((leftover = queue.poll()) != null) {
         leftover.release();
@@ -256,7 +238,7 @@ public class VideoSaverUIModule implements UIModule<MatWrapper> {
       int width = mat.cols();
       int height = mat.rows();
       double fps = Math.max(statisticDisplayUI.getFps(), 15);
-      // create recorder
+
       recorder = new FFmpegFrameRecorder(selectedFilePath, width, height);
       recorder.setVideoCodec(org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264);
       recorder.setFormat("mp4");

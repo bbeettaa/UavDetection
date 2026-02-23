@@ -1,7 +1,6 @@
 package knu.app.bll.algorithms.feature.anomaly;
 
 import knu.app.bll.algorithms.feature.ObjectState;
-
 import java.util.List;
 
 public class DirectionCurvatureAnomaly implements AnomalyClassifier {

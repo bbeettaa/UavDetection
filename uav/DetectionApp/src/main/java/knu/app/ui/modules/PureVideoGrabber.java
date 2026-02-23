@@ -3,7 +3,9 @@ package knu.app.ui.modules;
 import imgui.ImGui;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
+
 import java.util.concurrent.CompletableFuture;
+
 import knu.app.bll.utils.LocalizationManager;
 import knu.app.bll.utils.Utils;
 import knu.app.bll.grabbers.PlaybackControlVideoSource;
@@ -27,8 +29,7 @@ public class PureVideoGrabber implements UIModule<Frame> {
 
     public static final String GRABBER_ID = "Video Grabber Controls";
 
-//    private final ReentrantLock lock = new ReentrantLock();
-//    private final Condition pauseLock = lock.newCondition();
+    Frame l;
 
     public PureVideoGrabber(PlaybackControlVideoSource reader) {
         this.reader = reader;
@@ -116,48 +117,34 @@ public class PureVideoGrabber implements UIModule<Frame> {
         ImGui.sameLine();
         ImGui.inputInt(LocalizationManager.tr("video.attr.height"), height, 10, 100);
         ImGui.sameLine();
-      boolean bfr = ImGui.inputInt(LocalizationManager.tr("video.attr.framerate"), framerate);
+        boolean bfr = ImGui.inputInt(LocalizationManager.tr("video.attr.framerate"), framerate);
         ImGui.popItemWidth();
         ImGui.endDisabled();
 
-        if(bfr)
+        if (bfr)
             reader.setFramerate(framerate.get());
     }
 
     private void play() {
         if (videoFilePath == null) return;
-//        lock.lock();
-        try {
-            if (!isPlaying) {
-                isPlaying = true;
-//                pauseLock.signalAll();
-            }
-        } finally {
-//            lock.unlock();
+        if (!isPlaying) {
+            isPlaying = true;
         }
-
     }
 
-    Frame l;
     @Override
     public Frame execute(Frame o) {
-//        lock.lock();
         try {
             while (!isPlaying) {
-//                pauseLock.await();
-                Thread.sleep(500);
+                Thread.sleep(700);
                 return l;
             }
-//            Frame l =  reader.grab();
             l = reader.grab();
             return l;
         } catch (Exception e) {
             logger.warning(Arrays.toString(e.getStackTrace()));
             stop();
-        } finally {
-//            lock.unlock();
         }
-
         return null;
     }
 
@@ -200,7 +187,7 @@ public class PureVideoGrabber implements UIModule<Frame> {
         }
     }
 
-    public long getCurrentFrameIndex(){
+    public long getCurrentFrameIndex() {
         return reader.getFrameNumber();
     }
 

@@ -27,7 +27,6 @@ public class AccelerationKalmanFilter implements IKalmanFilter {
         for (int i = 4; i < 6; i++) this.Q_root.set(i, i, 0.001); // Ускорение
 
 
-
         this.R_root = Matrix.zero(2, 2);
         double r_val = 0.5;
         this.R_root.set(0, 0, r_val);
@@ -53,11 +52,13 @@ public class AccelerationKalmanFilter implements IKalmanFilter {
                 double dt2 = 0.5 * dt * dt;
                 Matrix j = Matrix.zero(6, 6);
                 // Диагональ
-                for(int i=0; i<6; i++) j.set(i,i, 1.0);
+                for (int i = 0; i < 6; i++) j.set(i, i, 1.0);
                 // x = x + v*dt + 0.5*a*dt^2
-                j.set(0, 2, dt); j.set(0, 4, dt2);
+                j.set(0, 2, dt);
+                j.set(0, 4, dt2);
                 // y = y + v*dt + 0.5*a*dt^2
-                j.set(1, 3, dt); j.set(1, 5, dt2);
+                j.set(1, 3, dt);
+                j.set(1, 5, dt2);
                 // v = v + a*dt
                 j.set(2, 4, dt);
                 j.set(3, 5, dt);
@@ -99,7 +100,7 @@ public class AccelerationKalmanFilter implements IKalmanFilter {
             Matrix[] corr = updatePhase(R_root, P_root, C, x, z);
             x = corr[0];
             P_root = corr[1];
-        }else {
+        } else {
             for (int i = 0; i < P_root.rowCount(); i++) {
                 double val = P_root.get(i, i);
                 val *= 1.05;  // немного увеличиваем уверенность
@@ -109,7 +110,6 @@ public class AccelerationKalmanFilter implements IKalmanFilter {
 
         return new Point2f((float) x.get(0, 0), (float) x.get(1, 0));
     }
-
 
 
     @Override
@@ -151,7 +151,7 @@ public class AccelerationKalmanFilter implements IKalmanFilter {
 
     @Override
     public Point2f predict() {
-        if (x == null) return new Point2f(0,0);
+        if (x == null) return new Point2f(0, 0);
 
         Matrix[] pred = predictPhase(physicsModel, currentDt, P_root, x, Q_root);
         Matrix x_pred = pred[0];
@@ -169,23 +169,21 @@ public class AccelerationKalmanFilter implements IKalmanFilter {
     }
 
 
-
-
-    public static Matrix[] predictPhase(Function f, double time, Matrix P_0_sqrt, Matrix x, Matrix Q_root){
+    public static Matrix[] predictPhase(Function f, double time, Matrix P_0_sqrt, Matrix x, Matrix Q_root) {
         int state_count = x.rowCount();
-        Matrix estimate = f.next(x,time);
-        Matrix jacobian = f.jacobian(x,time);
+        Matrix estimate = f.next(x, time);
+        Matrix jacobian = f.jacobian(x, time);
 
-        Matrix tmp = Matrix.zero(state_count, state_count*2);
-        tmp.setSubmatrix(0,0,state_count,state_count,Matrix.multiply(jacobian,P_0_sqrt));
-        tmp.setSubmatrix(0,state_count,state_count,state_count,Q_root);
+        Matrix tmp = Matrix.zero(state_count, state_count * 2);
+        tmp.setSubmatrix(0, 0, state_count, state_count, Matrix.multiply(jacobian, P_0_sqrt));
+        tmp.setSubmatrix(0, state_count, state_count, state_count, Q_root);
 
         Matrix QR_2[] = QR.QR(tmp.transpose());
         Matrix Q = QR_2[0];
         Matrix R = QR_2[1];
 
         Matrix covariance_sqrt = R.transpose();
-        covariance_sqrt = covariance_sqrt.getSubmatrix(0,0,state_count,state_count);
+        covariance_sqrt = covariance_sqrt.getSubmatrix(0, 0, state_count, state_count);
 
         Matrix result[] = new Matrix[2];
         result[0] = estimate;
@@ -236,35 +234,36 @@ public class AccelerationKalmanFilter implements IKalmanFilter {
 
         return new Matrix[]{estimate_next, Z};
     }
-    public static Matrix[][] ddekf( Function f, double dt_between_measurements, double start_time, int state_count, int sensor_count, int measurement_count, Matrix C, Matrix Q_root, Matrix R_root, Matrix P_0_root, Matrix x_0, Matrix[] measurements){
+
+    public static Matrix[][] ddekf(Function f, double dt_between_measurements, double start_time, int state_count, int sensor_count, int measurement_count, Matrix C, Matrix Q_root, Matrix R_root, Matrix P_0_root, Matrix x_0, Matrix[] measurements) {
         Matrix x_km1_p = x_0;
         Matrix P_root_km1_p = P_0_root;
 
-        Matrix[] estimates = new Matrix[measurement_count+1];
-        Matrix[] covariances = new Matrix[measurement_count+1];
+        Matrix[] estimates = new Matrix[measurement_count + 1];
+        Matrix[] covariances = new Matrix[measurement_count + 1];
 
         estimates[0] = x_km1_p;
         covariances[0] = P_root_km1_p;
 
         double current_time = start_time;
 
-        for(int k=0; k<measurement_count; k++){
-            Matrix resPredict[] = predictPhase(f,dt_between_measurements,P_root_km1_p,x_km1_p,Q_root);
+        for (int k = 0; k < measurement_count; k++) {
+            Matrix resPredict[] = predictPhase(f, dt_between_measurements, P_root_km1_p, x_km1_p, Q_root);
             Matrix x_k_m = resPredict[0];
             Matrix P_root_km = resPredict[1];
 
-            Matrix resUpdate[] = updatePhase(R_root,P_root_km,C,x_k_m,measurements[k]);
+            Matrix resUpdate[] = updatePhase(R_root, P_root_km, C, x_k_m, measurements[k]);
 
             x_km1_p = resUpdate[0];
             P_root_km1_p = resUpdate[1];
 
             current_time = current_time + dt_between_measurements;
 
-            estimates[k+1] = x_km1_p;
-            covariances[k+1] = Matrix.multiply(P_root_km1_p,P_root_km1_p.transpose());
+            estimates[k + 1] = x_km1_p;
+            covariances[k + 1] = Matrix.multiply(P_root_km1_p, P_root_km1_p.transpose());
         }
 
-        Matrix result [][] = new Matrix[2][];
+        Matrix result[][] = new Matrix[2][];
         result[0] = estimates;
         result[1] = covariances;
         return result;

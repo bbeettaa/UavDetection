@@ -67,9 +67,8 @@ public class Pipeline {
     private volatile int currentPreprocessThreads = 16;
     private volatile int currentProcessingThreads = 18;
 
-    private final ExecutorService ioExecutor = Executors.newCachedThreadPool(); // For IO-heavy: grab, render, save
-    private final ExecutorService cpuExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()); // For CPU-heavy: preprocess, processing
-
+    private final ExecutorService ioExecutor = Executors.newCachedThreadPool();
+    private final ExecutorService cpuExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
     private final List<Future<?>> grabTasks = new ArrayList<>();
     private final List<Future<?>> preprocessTasks = new ArrayList<>();
@@ -94,8 +93,7 @@ public class Pipeline {
     private Queue<MatWrapper> postProcessBuffer;
     private Queue<MatWrapper> frameWriterBuffer;
 
-    public Pipeline(int bufferCapacity, Mat singleDescriptor, String hogDescriptorFile,
-                    HogSvmDetectorConfig hogSvmDetectorConfig) {
+    public Pipeline(int bufferCapacity, Mat singleDescriptor, String hogDescriptorFile, HogSvmDetectorConfig hogSvmDetectorConfig) {
         registrationFactoryTrackers();
         initModules(bufferCapacity, singleDescriptor, hogDescriptorFile, hogSvmDetectorConfig);
         warmUpProcessing();
@@ -114,16 +112,13 @@ public class Pipeline {
 
     private static void registrationFactoryTrackers() {
         ObjectTrackerFactory trackerFactory = ObjectTrackerFactory.getInstance();
-        trackerFactory.registry(ObjectTrackerFactory.TrackerType.KALMAN.name(),
-                KalmanObjectTracker::new);
-        trackerFactory.registry(ObjectTrackerFactory.TrackerType.OPTICALFLOW.name(),
-                OpticalFlowTracker::new);
+        trackerFactory.registry(ObjectTrackerFactory.TrackerType.KALMAN.name(), KalmanObjectTracker::new);
+        trackerFactory.registry(ObjectTrackerFactory.TrackerType.OPTICALFLOW.name(), OpticalFlowTracker::new);
         trackerFactory.registry(ObjectTrackerFactory.TrackerType.CSRT.name(), CSRTTracker::new);
         trackerFactory.registry(ObjectTrackerFactory.TrackerType.MIL.name(), MilTracker::new);
     }
 
-    private void initModules(int bufferCapacity, Mat singleDescriptor, String hogDescriptorFile,
-                             HogSvmDetectorConfig hogSvmDetectorConfig) {
+    private void initModules(int bufferCapacity, Mat singleDescriptor, String hogDescriptorFile, HogSvmDetectorConfig hogSvmDetectorConfig) {
         frameReaderBuffer = new PriorityBlockingQueue<>(bufferCapacity);
         processingBuffer = new PriorityBlockingQueue<>(bufferCapacity);
         postProcessBuffer = new PriorityBlockingQueue<>(bufferCapacity);
@@ -148,53 +143,26 @@ public class Pipeline {
         MultiObjectTrackerFactory.getInstance().registry(TrackerType.DEEPSORT.name(), deepSortGrpcTracker);
         trackers.add(new DeepSortTrackerUi(deepSortGrpcTracker));
 
-        TrackingManager multiTrackingManager = new ImplementedTrackingManager(
-                LocalizationManager.tr("processor.tracker.manager.name2"), trackers);
+        TrackingManager multiTrackingManager = new ImplementedTrackingManager(LocalizationManager.tr("processor.tracker.manager.name2"), trackers);
 
         AssociationAlgorithm associationAlgorithm = new HungarianIoUAssociationJGraphT(0.2);
-        TrackingManager trackingManager = new AssociativeTrackingManager(associationAlgorithm,
-                LocalizationManager.tr("processor.tracker.manager.name1"));
+        TrackingManager trackingManager = new AssociativeTrackingManager(associationAlgorithm, LocalizationManager.tr("processor.tracker.manager.name1"));
         EventModelListener stopVideoListener = trackingManager::reset;
         videoSource.addListener(stopVideoListener);
 
         this.videoSaverUIModule = new VideoSaverUIModule(stat);
 
-        preprocessingUi = new PreprocessorUiModule(
-                new GrayColorPreprocessor(),
-                new BlurPreprocessor(),
-                new CannyPreprocessor(),
-                new FrameSizerPreprocessor(1920, 1080),
-                new KMeansPreprocessor(),
-                new DbscanPreprocessor()
-        );
+        preprocessingUi = new PreprocessorUiModule(new GrayColorPreprocessor(), new BlurPreprocessor(), new CannyPreprocessor(), new FrameSizerPreprocessor(1920, 1080), new KMeansPreprocessor(), new DbscanPreprocessor());
 
         List<TrackingManager> trackingManagers = List.of(trackingManager, multiTrackingManager);
 
-        processingUi = new ProcessingModule(trackingManagers, singleDescriptor,
-                hogDescriptorFile, hogSvmDetectorConfig, metrics.getEvaluator(), analyticsUIModule,
-                trajectoryRendererUI, new PredictionOverlayPostprocessor());
+        processingUi = new ProcessingModule(trackingManagers, singleDescriptor, hogDescriptorFile, hogSvmDetectorConfig, metrics.getEvaluator(), analyticsUIModule, trajectoryRendererUI, new PredictionOverlayPostprocessor());
 
-        createPipeline(videoGrabber, frameReaderBuffer, frameWriterBuffer, videoRenderer,
-                preprocessingUi, processingBuffer, processingUi);
+        createPipeline(videoGrabber, frameReaderBuffer, frameWriterBuffer, videoRenderer, preprocessingUi, processingBuffer, processingUi);
 
-        MainMenuUI mainMenu = new MainMenuUI(
-                new MainMenuSection(LocalizationManager.tr("menu.section.instruments.name"),
-                        new ToggleMenuSection(videoGrabber),
-                        new ToggleMenuSection(videoRenderer),
-                        new ToggleMenuSection(preprocessingUi),
-                        new ToggleMenuSection(processingUi),
-                        new ToggleMenuSection(analyticsUIModule),
-                        new ToggleMenuSection(videoSaverUIModule)
-                ),
-                new MainMenuSection(LocalizationManager.tr("menu.section.statistics.name"),
-                        new StatisticMenuSection(stat),
-                        new ToggleMenuSection(currentObjectsUIModule)
-                )
-        );
+        MainMenuUI mainMenu = new MainMenuUI(new MainMenuSection(LocalizationManager.tr("menu.section.instruments.name"), new ToggleMenuSection(videoGrabber), new ToggleMenuSection(videoRenderer), new ToggleMenuSection(preprocessingUi), new ToggleMenuSection(processingUi), new ToggleMenuSection(analyticsUIModule), new ToggleMenuSection(videoSaverUIModule)), new MainMenuSection(LocalizationManager.tr("menu.section.statistics.name"), new StatisticMenuSection(stat), new ToggleMenuSection(currentObjectsUIModule)));
 
-        uiModules.add(
-                new DockSpaceUIModule(VideoRenderer.VEDIO_OUTPUT_ID, ProcessingModule.PROCESSOR_ID,
-                        PureVideoGrabber.GRABBER_ID));
+        uiModules.add(new DockSpaceUIModule(VideoRenderer.VEDIO_OUTPUT_ID, ProcessingModule.PROCESSOR_ID, PureVideoGrabber.GRABBER_ID));
         uiModules.add(videoRenderer);
         uiModules.add(videoGrabber);
         uiModules.add(mainMenu);
@@ -206,11 +174,7 @@ public class Pipeline {
         uiModules.add(videoSaverUIModule);
     }
 
-    private void createPipeline(PureVideoGrabber videoGrabber,
-                                Queue<MatWrapper> frameReaderBuffer, Queue<MatWrapper> frameWriterBuffer,
-                                UIModule<Frame> videoRenderer, UIModule<MatWrapper> preprocessingUi,
-                                Queue<MatWrapper> processingBuffer,
-                                UIModule<MatWrapper> processingUi) {
+    private void createPipeline(PureVideoGrabber videoGrabber, Queue<MatWrapper> frameReaderBuffer, Queue<MatWrapper> frameWriterBuffer, UIModule<Frame> videoRenderer, UIModule<MatWrapper> preprocessingUi, Queue<MatWrapper> processingBuffer, UIModule<MatWrapper> processingUi) {
         this.videoGrabber = videoGrabber;
         this.preprocessingUi = preprocessingUi;
         this.processingUi = processingUi;
@@ -226,26 +190,19 @@ public class Pipeline {
     }
 
     private synchronized void grabAndPutToBuffer(Queue<MatWrapper> buffer) {
-//        long start = System.currentTimeMillis();
         try {
             Frame frame = videoGrabber.execute(null);
             if (frame != null) {
-                MatWrapper matWrapper = new MatWrapper(videoGrabber.getCurrentFrameIndex(),
-                        converter.convert(frame));
+                MatWrapper matWrapper = new MatWrapper(videoGrabber.getCurrentFrameIndex(), converter.convert(frame));
                 buffer.add((matWrapper));
             }
         } catch (Exception e) {
             logger.warning(Arrays.toString(e.getStackTrace()));
         }
-        long end = System.currentTimeMillis();
-//        if (end - start > 100) { // Log if >100ms
-//            logger.info("Grab time: " + (end - start) + "ms");
-//        }
     }
 
-    private void preprocessFrameFromAndPut(Queue<MatWrapper> inputBuffer,
-                                           UIModule<MatWrapper> preprocessingUi, Queue<MatWrapper> outputBuffer) {
-        long start = System.currentTimeMillis();
+    private void preprocessFrameFromAndPut(Queue<MatWrapper> inputBuffer, UIModule<MatWrapper> preprocessingUi, Queue<MatWrapper> outputBuffer) {
+//        long start = System.currentTimeMillis();
         try {
             MatWrapper input = inputBuffer.poll();
             if (input != null) {
@@ -255,16 +212,13 @@ public class Pipeline {
         } catch (Exception e) {
             logger.warning(Arrays.toString(e.getStackTrace()));
         }
-        long end = System.currentTimeMillis();
-        if (end - start > 100) {
+//        long end = System.currentTimeMillis();
+//        if (end - start > 100) {
 //            logger.info("Preprocess time: " + (end - start) + "ms");
-        }
+//        }
     }
 
-    private void processFrameFromAndPut(Queue<MatWrapper> outputBuffer,
-                                        Queue<MatWrapper> inputBuffer, UIModule<MatWrapper> processingUi,
-                                        VideoSaverUIModule videoSaverUIModule) {
-//        long start = System.currentTimeMillis();
+    private void processFrameFromAndPut(Queue<MatWrapper> outputBuffer, Queue<MatWrapper> inputBuffer, UIModule<MatWrapper> processingUi, VideoSaverUIModule videoSaverUIModule) {
         try {
             MatWrapper element = inputBuffer.poll();
             if (element != null) {
@@ -280,14 +234,9 @@ public class Pipeline {
         } catch (Exception e) {
             logger.warning("Exception in processFrameFromAndPut: " + e.getMessage() + "\n" + Arrays.toString(e.getStackTrace()));
         }
-        long end = System.currentTimeMillis();
-//        if (end - start > 100) {
-//            logger.info("Processing time: " + (end - start) + "ms");
-//        }
     }
 
-    private void renderFrameFromBuffer(Queue<MatWrapper> inputBuffer,
-                                       UIModule<Frame> videoRenderer) {
+    private void renderFrameFromBuffer(Queue<MatWrapper> inputBuffer, UIModule<Frame> videoRenderer) {
         long start = System.currentTimeMillis();
         try {
             MatWrapper element = inputBuffer.poll();
