@@ -4,9 +4,9 @@ import static org.bytedeco.opencv.global.opencv_imgproc.*;
 import static org.opencv.imgproc.Imgproc.FONT_HERSHEY_SIMPLEX;
 
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import knu.app.bll.algorithms.feature.ObjectState;
 import knu.app.bll.algorithms.trajectory.TrajectoryManager;
@@ -89,7 +89,7 @@ public class TrajectoryRenderer implements DetectionRenderer {
 
     public void renderTrajectory(Mat frame, List<TrackedObject> trackedObjects) {
         for (TrackedObject obj : trackedObjects) {
-            LinkedList<ObjectState> trajectory = obj.getTrajectory();
+            CopyOnWriteArrayList<ObjectState> trajectory = obj.getTrajectory();
             if (obj.isDeleted() || trajectory.size() < 2) continue;
 
             boolean isAnomalous = trajectory.getLast().isAnomalous;

@@ -135,7 +135,7 @@ public class Pipeline {
         videoGrabber = new PureVideoGrabber(videoSource);
         videoRenderer = new VideoRenderer();
 
-        AnalyticsUIModule analyticsUIModule = new AnalyticsUIModule(trajectoryManager);
+        AnalyticsUIModule analyticsUIModule = new AnalyticsUIModule();
         TrajectoryRendererUI trajectoryRendererUI = new TrajectoryRendererUI(renderer);
 
         List<TrackerUI> trackers = new ArrayList<>();

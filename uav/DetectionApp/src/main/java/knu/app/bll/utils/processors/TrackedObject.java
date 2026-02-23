@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class TrackedObject   {
     private  int id;
@@ -22,7 +23,7 @@ public class TrackedObject   {
     private  AccelerationKalmanFilter predictor = new AccelerationKalmanFilter();
     private final List<Boolean> hitHistory;
 
-    private final LinkedList<ObjectState> trajectory = new LinkedList<>();
+    private final CopyOnWriteArrayList<ObjectState> trajectory = new CopyOnWriteArrayList<>();
 
     public enum TrackState {
         Tentative, Confirmed, Deleted
@@ -105,7 +106,7 @@ public class TrackedObject   {
         }
     }
 
-    public LinkedList<ObjectState> getTrajectory() {
+    public CopyOnWriteArrayList<ObjectState> getTrajectory() {
         return trajectory;
     }
 

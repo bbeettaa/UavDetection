@@ -27,24 +27,26 @@ public class AnalyticsUIModule implements UIModule<List<TrackedObject>> {
 
     private final Object currentObjectsLock = new Object();
     private final List<TrackedObject> currentObjects = new ArrayList<>();
-
     private final Set<Long> uniqueIdsSeen = ConcurrentHashMap.newKeySet();
     private final AtomicLong uniqueObjectsCount = new AtomicLong(0);
-
-    // Full object buffer for report generation
     private final Queue<Map<String, Object>> reportBuffer = new ConcurrentLinkedQueue<>();
+    private final Map<Integer, LinkedList<ObjectState>> vizCache = new ConcurrentHashMap<>();
 
-    private final TrajectoryManager trajectoryManager;
+    private final int COL_NORMAL = ImColor.rgb(0.0f, 1.0f, 0.0f);
+    private final int COL_ANOMALY = ImColor.rgb(1.0f, 0.0f, 0.0f);
+
+
     private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "analytics-io");
         t.setDaemon(true);
         return t;
     });
 
+    private final int vizMaxHistory = 300;
+    private final int canvasSize = 240;
     private final int directionMinDelta = 5;
 
-    public AnalyticsUIModule(TrajectoryManager trajectoryManager) {
-        this.trajectoryManager = trajectoryManager;
+    public AnalyticsUIModule() {
     }
 
     @Override
@@ -96,18 +98,12 @@ public class AnalyticsUIModule implements UIModule<List<TrackedObject>> {
             entry.put("is_anomalous", last.isAnomalous);
             entry.put("anomaly_desc", last.anomalyDescription != null ? last.anomalyDescription : "none");
 
-            // Trajectory points
             List<Map<String, Integer>> trajectoryPoints = obj.getTrajectory().stream()
                     .map(st -> Map.of("x", st.center.x(), "y", st.center.y()))
                     .collect(Collectors.toList());
             entry.put("trajectory", trajectoryPoints);
-
-            // Compute main movement direction
             entry.put("direction", computeDirection(obj.getTrajectory(), directionMinDelta));
-
-            // Forecast vs actual deviation (simulated)
             entry.put("forecast_error_px", Math.random() * 2.0);
-
             reportBuffer.add(entry);
         }
     }
@@ -126,13 +122,11 @@ public class AnalyticsUIModule implements UIModule<List<TrackedObject>> {
         ioExecutor.submit(() -> {
             String filename = "Integrated_Report_" + Instant.now().getEpochSecond() + ".json";
             Map<String, Object> finalReport = new LinkedHashMap<>();
-
             finalReport.put("report_title", "Integrated Object Tracking & Anomaly Detection Report");
             finalReport.put("structure_desc", "Contains per-frame bbox, features, anomalies, and trajectory points.");
             finalReport.put("total_unique_objects", uniqueObjectsCount.get());
             finalReport.put("data_points", reportBuffer.size());
             finalReport.put("frames_data", new ArrayList<>(reportBuffer));
-
             finalReport.put("conclusions",
                     "Algorithm efficiency evaluated by feature stability, anomaly detection latency, " +
                             "and trajectory consistency. Full trajectory and anomaly info allows detailed performance analysis.");
@@ -173,9 +167,6 @@ public class AnalyticsUIModule implements UIModule<List<TrackedObject>> {
             generateIntegratedReport();
         }
 
-
-
-
         ImGui.separator();
 
         synchronized (currentObjectsLock) {
@@ -189,9 +180,7 @@ public class AnalyticsUIModule implements UIModule<List<TrackedObject>> {
     @Override public void toggle() { windowOpen.set(!windowOpen.get()); }
     @Override public boolean isOpened() { return windowOpen.get(); }
 
-    private final Map<Integer, LinkedList<ObjectState>> vizCache = new ConcurrentHashMap<>();
-    private final int vizMaxHistory = 300; // максимальная длина буфера для каждой траектории
-    private final int canvasSize = 240; // размер "полотна" для каждой траектории
+
 
     private void updateVizCache(List<TrackedObject> objects) {
         for (TrackedObject obj : objects) {
@@ -199,8 +188,8 @@ public class AnalyticsUIModule implements UIModule<List<TrackedObject>> {
             LinkedList<ObjectState> cache = vizCache.computeIfAbsent(id, k -> new LinkedList<>());
             List<ObjectState> trajCopy;
 
-            synchronized (obj.getTrajectory()) { // блокировка если траектория меняется в другом потоке
-                trajCopy = new ArrayList<>(obj.getTrajectory()); // безопасная копия
+            synchronized (obj.getTrajectory()) {
+                trajCopy = new ArrayList<>(obj.getTrajectory());
             }
 
             if (trajCopy.isEmpty()) continue;
@@ -234,12 +223,6 @@ public class AnalyticsUIModule implements UIModule<List<TrackedObject>> {
         return a.x() == b.x() && a.y() == b.y();
     }
 
-
-
-    private final int COL_NORMAL = ImColor.rgb(0.0f, 1.0f, 0.0f);
-    private final int COL_ANOMALY = ImColor.rgb(1.0f, 0.0f, 0.0f);
-    private final int COL_TRAJECTORY = ImColor.rgb(1.0f, 1.0f, 1.0f);
-
     public void renderVisualizations(List<TrackedObject> objects) {
         synchronized (currentObjectsLock) {
             updateVizCache(objects);
@@ -268,6 +251,9 @@ public class AnalyticsUIModule implements UIModule<List<TrackedObject>> {
 
             ImGui.text("Trajectory Map (Red dots = Anomalies):");
             renderTrajectoryCanvas(traj);
+            renderSpeedAndTexture(traj);
+            renderDirectionHistogram(traj);
+            renderHeatmap(traj, 1920, 1080);
 
             ImGui.newLine();
 
@@ -301,26 +287,25 @@ public class AnalyticsUIModule implements UIModule<List<TrackedObject>> {
     }
 
     private void renderTrajectoryCanvas(LinkedList<ObjectState> traj) {
+        if (traj.isEmpty()) return;
+
         ImDrawList drawList = ImGui.getWindowDrawList();
         float originX = ImGui.getCursorScreenPosX();
         float originY = ImGui.getCursorScreenPosY();
 
-        // Background for canvas
-        drawList.addRectFilled(originX, originY, originX + canvasSize, originY + canvasSize, ImColor.rgb(0.1f, 0.1f, 0.1f));
+        drawList.addRectFilled(originX, originY, originX + canvasSize, originY + canvasSize, ImColor.rgb(0.05f, 0.05f, 0.05f));
         drawList.addRect(originX, originY, originX + canvasSize, originY + canvasSize, ImColor.rgb(0.3f, 0.3f, 0.3f));
 
-        // Bounds for scaling
         int minX = traj.stream().mapToInt(st -> st.center.x()).min().orElse(0);
         int maxX = traj.stream().mapToInt(st -> st.center.x()).max().orElse(1);
         int minY = traj.stream().mapToInt(st -> st.center.y()).min().orElse(0);
         int maxY = traj.stream().mapToInt(st -> st.center.y()).max().orElse(1);
 
+        float pad = 10f;
         float dx = maxX - minX;
         float dy = maxY - minY;
-        float pad = 10f;
         float scale = Math.min((canvasSize - 2 * pad) / (dx == 0 ? 1 : dx), (canvasSize - 2 * pad) / (dy == 0 ? 1 : dy));
 
-        // Draw lines
         for (int i = 1; i < traj.size(); i++) {
             ObjectState p0 = traj.get(i - 1);
             ObjectState p1 = traj.get(i);
@@ -330,16 +315,126 @@ public class AnalyticsUIModule implements UIModule<List<TrackedObject>> {
             float x1 = originX + pad + (p1.center.x() - minX) * scale;
             float y1 = originY + pad + (p1.center.y() - minY) * scale;
 
-            drawList.addLine(x0, y0, x1, y1, COL_TRAJECTORY, 1.5f);
+            float alpha = Math.max(0.2f, (i / (float) traj.size()));
+            int lineColor = ImColor.rgb(1.0f * alpha, 1.0f * alpha, 1.0f * alpha);
 
-            // Mark point if it's anomalous
-            if (p1.isAnomalous) {
-                drawList.addCircleFilled(x1, y1, 4.0f, COL_ANOMALY);
-            } else if (i == traj.size() - 1) {
-                drawList.addCircleFilled(x1, y1, 3.0f, COL_NORMAL); // current pos
+            drawList.addLine(x0, y0, x1, y1, lineColor, 1.2f);
+        }
+
+        for (int i = 0; i < traj.size(); i++) {
+            ObjectState st = traj.get(i);
+            float x = originX + pad + (st.center.x() - minX) * scale;
+            float y = originY + pad + (st.center.y() - minY) * scale;
+
+            if (st.isAnomalous) {
+                drawList.addCircleFilled(x, y, 4.0f, COL_ANOMALY);
+            } else if (i == traj.size() - 1) { // последняя точка
+                drawList.addCircleFilled(x, y, 3.0f, COL_NORMAL);
+            }
+        }
+        ImGui.dummy(canvasSize, canvasSize);
+    }
+
+    private void renderSpeedAndTexture(LinkedList<ObjectState> traj) {
+        if (traj.isEmpty()) return;
+
+        float[] speeds = new float[traj.size()];
+        float[] textures = new float[traj.size()];
+        for (int i = 0; i < traj.size(); i++) {
+            speeds[i] = (float) traj.get(i).speed;
+            textures[i] = (float) traj.get(i).textureStdDev;
+        }
+
+        ImGui.plotLines("Speed Profile (px/frame)", speeds, speeds.length, 0, "", 0, 50, canvasSize, 60);
+        ImGui.plotLines("Texture Deviation (Noise level)", textures, textures.length, 0, "", 0, 100, canvasSize, 60);
+    }
+
+    private void renderDirectionHistogram(LinkedList<ObjectState> traj) {
+        if (traj.size() < 2) return;
+
+        int[] dirCounts = new int[4]; // 0=UP,1=DOWN,2=LEFT,3=RIGHT
+        for (int i = 1; i < traj.size(); i++) {
+            String dir = computeDirection(traj.subList(i-1, i+1), directionMinDelta);
+            switch(dir) {
+                case "UP": dirCounts[0]++; break;
+                case "DOWN": dirCounts[1]++; break;
+                case "LEFT": dirCounts[2]++; break;
+                case "RIGHT": dirCounts[3]++; break;
+            }
+        }
+
+        float[] values = new float[dirCounts.length];
+        for (int i = 0; i < dirCounts.length; i++) values[i] = dirCounts[i];
+
+        ImGui.text("UP DOWN LEFT RIGHT");
+        ImGui.plotHistogram("Direction Histogram", values, values.length, 0, "", 0, Arrays.stream(dirCounts).max().orElse(1), canvasSize, 60);
+    }
+
+    private void renderHeatmap(LinkedList<ObjectState> traj, int videoWidth, int videoHeight) {
+        if (traj.isEmpty()) return;
+
+        ImDrawList drawList = ImGui.getWindowDrawList();
+        float originX = ImGui.getCursorScreenPosX();
+        float originY = ImGui.getCursorScreenPosY();
+
+        // Размер сетки
+        int gridSize = 8;
+        int gridWidth = canvasSize / gridSize;
+        int gridHeight = canvasSize / gridSize;
+
+        // Буфер тепловой карты
+        float[][] heatmap = new float[gridWidth][gridHeight];
+
+        // Привязываем координаты к кадру видео
+        float scaleX = (float) canvasSize / videoWidth;
+        float scaleY = (float) canvasSize / videoHeight;
+
+        // Заполняем heatmap
+        for (ObjectState st : traj) {
+            int gx = Math.min(gridWidth - 1, Math.max(0, (int) (st.center.x() * scaleX / gridSize)));
+            int gy = Math.min(gridHeight - 1, Math.max(0, (int) (st.center.y() * scaleY / gridSize)));
+
+            // Увеличиваем “интенсивность” клетки
+            heatmap[gx][gy] += 1.0f;
+        }
+
+        // Находим максимальное значение для нормализации
+        float maxVal = 0.0f;
+        for (int x = 0; x < gridWidth; x++)
+            for (int y = 0; y < gridHeight; y++)
+                if (heatmap[x][y] > maxVal) maxVal = heatmap[x][y];
+        if (maxVal == 0.0f) maxVal = 1.0f;
+
+        // Рисуем плавную карту (каждая клетка слегка размазывается на соседей)
+        for (int x = 0; x < gridWidth; x++) {
+            for (int y = 0; y < gridHeight; y++) {
+                float val = heatmap[x][y];
+
+                // Добавим простое размытие соседями
+                float sum = val;
+                int count = 1;
+                for (int dx = -1; dx <= 1; dx++) {
+                    for (int dy = -1; dy <= 1; dy++) {
+                        int nx = x + dx, ny = y + dy;
+                        if (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight && (dx != 0 || dy != 0)) {
+                            sum += heatmap[nx][ny] * 0.5f; // соседям меньший вес
+                            count += 0.5f;
+                        }
+                    }
+                }
+                float intensity = Math.min(1.0f, sum / count / maxVal);
+
+                if (intensity > 0.01f) { // рисуем только заметные зоны
+                    drawList.addRectFilled(
+                            originX + x * gridSize, originY + (gridHeight - y - 1) * gridSize,
+                            originX + (x + 1) * gridSize, originY + (gridHeight - y) * gridSize,
+                            ImColor.rgb(intensity, 0.0f, 1.0f - intensity)
+                    );
+                }
             }
         }
 
         ImGui.dummy(canvasSize, canvasSize);
     }
+
 }

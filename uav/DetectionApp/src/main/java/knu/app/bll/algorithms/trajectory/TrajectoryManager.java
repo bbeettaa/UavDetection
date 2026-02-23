@@ -40,7 +40,15 @@ public class TrajectoryManager {
             ObjectState newState = extractFeatures(frame, obj);
             obj.addState(newState, maxLength);
             if (activeDetectorIndex >= 0 && activeDetectorIndex < detectors.size()) {
-                newState.isAnomalous = detectors.get(activeDetectorIndex).detectAnomaly(obj.getTrajectory());
+
+//                long start = System.nanoTime();
+                for (int i = 0; i < 10000; i++) {
+                    newState.isAnomalous = detectors.get(activeDetectorIndex).detectAnomaly(obj.getTrajectory());
+                }
+//                long end = System.nanoTime();
+
+//                double avgTimeMicro = (end - start) / 10000.0 / 1000.0;
+//                System.out.println(detectors.get(activeDetectorIndex).getMethodName() + " avg time: " + avgTimeMicro + " µs");
             }
         }
     }

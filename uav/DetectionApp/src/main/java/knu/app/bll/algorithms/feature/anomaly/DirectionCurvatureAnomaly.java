@@ -6,7 +6,7 @@ import java.util.List;
 
 public class DirectionCurvatureAnomaly implements AnomalyClassifier {
 
-    // Порог резкого изменения угла в радианах (≈ 60 градусов)
+    // (≈ 60 градусов)
     private static final double DIRECTION_CHANGE_THRESHOLD = Math.PI / 3;
     private static final double MIN_SPEED_FOR_ANALYSIS = 3.0;
 
@@ -14,7 +14,7 @@ public class DirectionCurvatureAnomaly implements AnomalyClassifier {
     public boolean detectAnomaly(List<ObjectState> history) {
         if (history.size() < 3) return false;
 
-        ObjectState current = history.get(history.size() - 1);
+        ObjectState current = history.getLast();
         ObjectState previous = history.get(history.size() - 2);
 
         if (current.speed < MIN_SPEED_FOR_ANALYSIS || previous.speed < MIN_SPEED_FOR_ANALYSIS) {

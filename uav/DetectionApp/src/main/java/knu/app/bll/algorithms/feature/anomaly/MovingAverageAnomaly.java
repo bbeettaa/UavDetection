@@ -6,19 +6,15 @@ import java.util.List;
 
 public class MovingAverageAnomaly implements AnomalyClassifier {
 
-    // Окно анализа
     private static final int WINDOW_SIZE = 15;
-    // Коэффициент чувствительности
     private static final double SENSITIVITY_FACTOR = 2.0;
 
     @Override
     public boolean detectAnomaly(List<ObjectState> history) {
-        // Нужно накопить историю для вычисления среднего
         if (history.size() < WINDOW_SIZE) return false;
 
         ObjectState current = history.getLast();
 
-        // Вычисляем среднюю скорость по окну
         double sumSpeed = 0;
         double sumAspect = 0;
         int count = 0;

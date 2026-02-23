@@ -16,20 +16,17 @@ public class StatisticalThresholdAnomaly implements AnomalyClassifier {
         ObjectState current = history.getLast();
         ObjectState previous = history.get(history.size() - 2);
 
-        // Перевірка швидкості
         if (current.speed > MAX_SPEED_THRESHOLD || (current.speed < MIN_SPEED_THRESHOLD && current.speed > 0)) {
             current.anomalyDescription = "SPEED: " + current.speed;
             return true;
         }
 
-        // Перевірка різкої зміни форми
         double ratioChange = Math.abs(current.aspectRatio - previous.aspectRatio);
         if (ratioChange > MAX_ASPECT_RATIO_CHANGE) {
             current.anomalyDescription = "FORM";
             return true;
         }
 
-        // Аналіз траєкторії
         double angleDiff = Math.abs(current.angleDirection - previous.angleDirection);
         if (angleDiff > Math.PI / 2) {
             current.anomalyDescription = "TRAJECTORY";

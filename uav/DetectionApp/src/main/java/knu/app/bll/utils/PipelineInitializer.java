@@ -143,7 +143,7 @@ public class PipelineInitializer {
         VideoRenderer videoRenderer = new VideoRenderer();
         PipelineControlUI pipelineControlUI = new PipelineControlUI(this);
 
-        AnalyticsUIModule analyticsUIModule = new AnalyticsUIModule(trajectoryManager);
+        AnalyticsUIModule analyticsUIModule = new AnalyticsUIModule();
         TrajectoryRendererUI trajectoryRendererUI = new TrajectoryRendererUI(renderer);
 
         List<TrackerUI> trackers = new ArrayList<>();

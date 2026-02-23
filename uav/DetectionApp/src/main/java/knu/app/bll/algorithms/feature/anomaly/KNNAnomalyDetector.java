@@ -6,8 +6,8 @@ import java.util.PriorityQueue;
 
 public class KNNAnomalyDetector implements AnomalyClassifier {
 
-    private final int K = 5; // Количество соседей
-    private final double DISTANCE_THRESHOLD = 50.0; // Порог аномальности
+    private final int K = 5;
+    private final double DISTANCE_THRESHOLD = 50.0;
 
     @Override
     public boolean detectAnomaly(List<ObjectState> history) {
@@ -16,10 +16,8 @@ public class KNNAnomalyDetector implements AnomalyClassifier {
         ObjectState current = history.getLast();
         double[] target = {current.speed, current.aspectRatio * 10, current.brightnessMean / 5};
 
-        // Очередь с приоритетом для поиска K ближайших соседей
         PriorityQueue<Double> nearestDistances = new PriorityQueue<>(Double::compare);
 
-        // Сравниваем текущее состояние со всей историей (кроме последних 2 кадров)
         for (int i = 0; i < history.size() - 5; i++) {
             ObjectState neighbor = history.get(i);
             double[] neighborFeat = {neighbor.speed, neighbor.aspectRatio * 10, neighbor.brightnessMean / 5};
@@ -28,14 +26,12 @@ public class KNNAnomalyDetector implements AnomalyClassifier {
             nearestDistances.add(dist);
         }
 
-        // Берем среднее расстояние до K ближайших соседей
         double sumKDist = 0;
         for (int i = 0; i < K && !nearestDistances.isEmpty(); i++) {
             sumKDist += nearestDistances.poll();
         }
         double avgKDist = sumKDist / K;
 
-        // Если среднее расстояние до соседей слишком большое — это "выброс" (аномалия)
         if (avgKDist > DISTANCE_THRESHOLD) {
             current.anomalyDescription = String.format("KNN: Dist %.1f", avgKDist);
             return true;

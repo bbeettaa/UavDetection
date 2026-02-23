@@ -5,9 +5,7 @@ import java.util.List;
 
 public class TextureChangeAnomaly implements AnomalyClassifier {
 
-    // Порог изменения яркости (насколько сильно должен измениться объект)
     private static final double BRIGHTNESS_THRESHOLD = 50.0;
-    // Порог изменения контрастности (stdDev)
     private static final double CONTRAST_THRESHOLD = 20.0;
 
     @Override
@@ -16,7 +14,6 @@ public class TextureChangeAnomaly implements AnomalyClassifier {
 
         ObjectState current = history.getLast();
 
-        // Считаем среднюю яркость объекта за последние кадры (базовая модель)
         double avgBrightness = 0;
         double avgStdDev = 0;
         int window = Math.min(history.size() - 1, 10);
@@ -28,13 +25,11 @@ public class TextureChangeAnomaly implements AnomalyClassifier {
         avgBrightness /= window;
         avgStdDev /= window;
 
-        // 1. Проверка резкого изменения освещенности/цвета
         if (Math.abs(current.brightnessMean - avgBrightness) > BRIGHTNESS_THRESHOLD) {
             current.anomalyDescription = "TEXTURE_BRIGHTNESS";
             return true;
         }
 
-        // 2. Проверка резкого изменения контрастности (детализации текстуры)
         if (Math.abs(current.textureStdDev - avgStdDev) > CONTRAST_THRESHOLD) {
             current.anomalyDescription = "TEXTURE_CONTRAST";
             return true;
