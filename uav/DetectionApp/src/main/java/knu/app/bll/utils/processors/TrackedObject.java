@@ -39,14 +39,13 @@ public class TrackedObject   {
         this.tracker = tracker;
         this.hitHistory = new ArrayList<>();
         this.className = "";
-        predictor = new AccelerationKalmanFilter();
+        predictor = new AccelerationKalmanFilter(0.9, 0.5, 0.5);
     }
 
     public TrackedObject(Rect rect) {
         this(rect, -1, null);
     }
 
-    // getters & setters
     public int getId() {
         return id;
     }

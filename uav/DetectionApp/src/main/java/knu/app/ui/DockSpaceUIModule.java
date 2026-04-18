@@ -84,7 +84,7 @@ public class DockSpaceUIModule implements UIModule<Object> {
 
             imgui.internal.ImGui.dockBuilderDockWindow(leftWindowId, leftID);
             imgui.internal.ImGui.dockBuilderDockWindow(bottomWindowId, bottomID);
-
+            imgui.internal.ImGui.dockBuilderFinish(mainDockID);
         }
 
         ImGui.end();

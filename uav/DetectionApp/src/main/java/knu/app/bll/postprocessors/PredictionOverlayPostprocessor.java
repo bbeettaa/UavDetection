@@ -90,14 +90,6 @@ public class PredictionOverlayPostprocessor implements FramePostprocessorValue<L
             if (!traj.isEmpty()) {
                 ObjectState last = traj.get(traj.size() - 1);
                 circle(frame, last.center, 4, COLOR_ACTUAL, -1, LINE_AA, 0);
-
-                if (last.isAnomalous) {
-                    Rect bbox = last.boundingBox != null ? last.boundingBox : r;
-                    if (bbox != null) {
-                        rectangle(frame, bbox, COLOR_ANOM, 3, LINE_AA, 0);
-                        putText(frame, "ANOMALY", new Point(bbox.x(), Math.max(0, bbox.y() - 5)), FONT_HERSHEY_SIMPLEX, 0.5, COLOR_ANOM, 2, LINE_AA, false);
-                    }
-                }
             }
         }
     }

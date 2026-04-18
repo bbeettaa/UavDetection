@@ -17,19 +17,19 @@ public class StatisticalThresholdAnomaly implements AnomalyClassifier {
         ObjectState previous = history.get(history.size() - 2);
 
         if (current.speed > MAX_SPEED_THRESHOLD || (current.speed < MIN_SPEED_THRESHOLD && current.speed > 0)) {
-            current.anomalyDescription = "SPEED: " + current.speed;
+            current.anomalyDescription = String.format("SPEED: %.1f", current.speed);
             return true;
         }
 
         double ratioChange = Math.abs(current.aspectRatio - previous.aspectRatio);
         if (ratioChange > MAX_ASPECT_RATIO_CHANGE) {
-            current.anomalyDescription = "FORM";
+            current.anomalyDescription = String.format("FORM: %.1f", ratioChange);
             return true;
         }
 
         double angleDiff = Math.abs(current.angleDirection - previous.angleDirection);
         if (angleDiff > Math.PI / 2) {
-            current.anomalyDescription = "TRAJECTORY";
+            current.anomalyDescription = String.format("TRAJECTORY: %.1f", angleDiff);
             return true;
         }
 

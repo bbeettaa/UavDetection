@@ -122,14 +122,9 @@ public class AnalyticsUIModule implements UIModule<List<TrackedObject>> {
         ioExecutor.submit(() -> {
             String filename = "Integrated_Report_" + Instant.now().getEpochSecond() + ".json";
             Map<String, Object> finalReport = new LinkedHashMap<>();
-            finalReport.put("report_title", "Integrated Object Tracking & Anomaly Detection Report");
-            finalReport.put("structure_desc", "Contains per-frame bbox, features, anomalies, and trajectory points.");
             finalReport.put("total_unique_objects", uniqueObjectsCount.get());
             finalReport.put("data_points", reportBuffer.size());
             finalReport.put("frames_data", new ArrayList<>(reportBuffer));
-            finalReport.put("conclusions",
-                    "Algorithm efficiency evaluated by feature stability, anomaly detection latency, " +
-                            "and trajectory consistency. Full trajectory and anomaly info allows detailed performance analysis.");
 
             try (FileWriter writer = new FileWriter(filename)) {
                 Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -163,7 +158,7 @@ public class AnalyticsUIModule implements UIModule<List<TrackedObject>> {
         ImGui.text("Objects Seen: " + uniqueObjectsCount.get());
         ImGui.text("Buffered Frames: " + reportBuffer.size());
 
-        if (ImGui.button("Generate Integrated Report (.json)")) {
+        if (ImGui.button("Generate Report (.json)")) {
             generateIntegratedReport();
         }
 

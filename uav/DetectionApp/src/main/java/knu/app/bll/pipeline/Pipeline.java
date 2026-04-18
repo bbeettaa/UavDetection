@@ -64,8 +64,8 @@ public class Pipeline {
     private static final Logger logger = Logger.getLogger(Pipeline.class.getName());
 
     private volatile int currentGrabThreads = 1;
-    private volatile int currentPreprocessThreads = 16;
-    private volatile int currentProcessingThreads = 18;
+    private volatile int currentPreprocessThreads = 1;
+    private volatile int currentProcessingThreads = 4;
 
     private final ExecutorService ioExecutor = Executors.newCachedThreadPool();
     private final ExecutorService cpuExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
@@ -88,10 +88,10 @@ public class Pipeline {
     private UIModule<Frame> videoRenderer;
     private VideoSaverUIModule videoSaverUIModule;
 
-    private Queue<MatWrapper> frameReaderBuffer;
-    private Queue<MatWrapper> processingBuffer;
-    private Queue<MatWrapper> postProcessBuffer;
-    private Queue<MatWrapper> frameWriterBuffer;
+    private BlockingQueue<MatWrapper> frameReaderBuffer;
+    private BlockingQueue<MatWrapper> processingBuffer;
+    private BlockingQueue<MatWrapper> postProcessBuffer;
+    private BlockingQueue<MatWrapper> frameWriterBuffer;
 
     public Pipeline(int bufferCapacity, Mat singleDescriptor, String hogDescriptorFile, HogSvmDetectorConfig hogSvmDetectorConfig) {
         registrationFactoryTrackers();
@@ -119,10 +119,10 @@ public class Pipeline {
     }
 
     private void initModules(int bufferCapacity, Mat singleDescriptor, String hogDescriptorFile, HogSvmDetectorConfig hogSvmDetectorConfig) {
-        frameReaderBuffer = new PriorityBlockingQueue<>(bufferCapacity);
-        processingBuffer = new PriorityBlockingQueue<>(bufferCapacity);
-        postProcessBuffer = new PriorityBlockingQueue<>(bufferCapacity);
-        frameWriterBuffer = new PriorityBlockingQueue<>(bufferCapacity);
+        frameReaderBuffer = new LinkedBlockingQueue<>(bufferCapacity);
+        processingBuffer = new LinkedBlockingQueue<>(bufferCapacity);
+        postProcessBuffer = new LinkedBlockingQueue<>(bufferCapacity);
+        frameWriterBuffer = new LinkedBlockingQueue<>(bufferCapacity);
 
         TrajectoryRenderer renderer = new TrajectoryRenderer(trajectoryManager);
 
@@ -174,7 +174,10 @@ public class Pipeline {
         uiModules.add(videoSaverUIModule);
     }
 
-    private void createPipeline(PureVideoGrabber videoGrabber, Queue<MatWrapper> frameReaderBuffer, Queue<MatWrapper> frameWriterBuffer, UIModule<Frame> videoRenderer, UIModule<MatWrapper> preprocessingUi, Queue<MatWrapper> processingBuffer, UIModule<MatWrapper> processingUi) {
+    private void createPipeline(PureVideoGrabber videoGrabber,
+                                BlockingQueue<MatWrapper> frameReaderBuffer,
+                                BlockingQueue<MatWrapper> frameWriterBuffer, UIModule<Frame> videoRenderer, UIModule<MatWrapper> preprocessingUi,
+                                BlockingQueue<MatWrapper> processingBuffer, UIModule<MatWrapper> processingUi) {
         this.videoGrabber = videoGrabber;
         this.preprocessingUi = preprocessingUi;
         this.processingUi = processingUi;
@@ -201,10 +204,10 @@ public class Pipeline {
         }
     }
 
-    private void preprocessFrameFromAndPut(Queue<MatWrapper> inputBuffer, UIModule<MatWrapper> preprocessingUi, Queue<MatWrapper> outputBuffer) {
+    private void preprocessFrameFromAndPut(BlockingQueue<MatWrapper> inputBuffer, UIModule<MatWrapper> preprocessingUi, Queue<MatWrapper> outputBuffer) {
 //        long start = System.currentTimeMillis();
         try {
-            MatWrapper input = inputBuffer.poll();
+            MatWrapper input = inputBuffer.take();
             if (input != null) {
                 MatWrapper output = preprocessingUi.execute(input);
                 outputBuffer.add(output);
@@ -218,9 +221,9 @@ public class Pipeline {
 //        }
     }
 
-    private void processFrameFromAndPut(Queue<MatWrapper> outputBuffer, Queue<MatWrapper> inputBuffer, UIModule<MatWrapper> processingUi, VideoSaverUIModule videoSaverUIModule) {
+    private void processFrameFromAndPut(Queue<MatWrapper> outputBuffer, BlockingQueue<MatWrapper> inputBuffer, UIModule<MatWrapper> processingUi, VideoSaverUIModule videoSaverUIModule) {
         try {
-            MatWrapper element = inputBuffer.poll();
+            MatWrapper element = inputBuffer.take();
             if (element != null) {
                 Mat originalMat = element.mat;
                 if (originalMat != null) {
@@ -236,10 +239,10 @@ public class Pipeline {
         }
     }
 
-    private void renderFrameFromBuffer(Queue<MatWrapper> inputBuffer, UIModule<Frame> videoRenderer) {
+    private void renderFrameFromBuffer(BlockingQueue<MatWrapper> inputBuffer, UIModule<Frame> videoRenderer) {
         long start = System.currentTimeMillis();
         try {
-            MatWrapper element = inputBuffer.poll();
+            MatWrapper element = inputBuffer.take();
             if (element != null) {
                 Frame frame = converter.convert(element.mat);
                 videoRenderer.execute(frame);

@@ -87,7 +87,7 @@ public class ProcessingModule implements UIModule<MatWrapper> {
         detectors.add(new SIFTDetectorUI(new SIFTObjectDetector(templateImg)));
         detectors.add(new SURFDetectorUI(new SURFObjectDetector(templateImg)));
         detectors.add(new HogDetectorUI(
-                new HogSvmDetector(HogSvmUtils.loadDescriptorFromFile(hogDescriptorFile),
+                new HogSvmDetector(hogDescriptorFile,
                         hogSvmDetectorConfig)));
 
         detectors.add(new YoloDetectorUi(new YoloObjectDetector(Main.HOST, Main.YOLO_PORT)));

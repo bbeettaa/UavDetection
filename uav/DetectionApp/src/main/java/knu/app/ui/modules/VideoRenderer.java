@@ -72,41 +72,46 @@ public static final String VEDIO_OUTPUT_ID = "Video Output";
     }
 
 
+
     private void renderVideoOutput() {
+        if (!ImGui.begin(VEDIO_OUTPUT_ID, VIDEO_WINDOW_FLAGS)) {
+            ImGui.end();
+            return;
+        }
 
-        if (ImGui.begin(VEDIO_OUTPUT_ID, VIDEO_WINDOW_FLAGS)) {
-            try {
-                BufferElement<BufferedImage> element = imageBuffer.get();
+        try {
+            BufferElement<BufferedImage> element = imageBuffer.get();
 
-                if (element != null) {
-                    BufferedImage frame = element.getData();
-                    texture.upload(frame);
-                }
-
-                // Calculate display dimensions
-                ImVec2 contentSize = ImGui.getContentRegionAvail();
-                float displayWidth = contentSize.x;
-                float displayHeight = contentSize.y;
-
-                if (keepAspectRatio.get()) {
-                    float aspectRatio = aspectX.get() / aspectY.get();
-                    if (contentSize.x / contentSize.y > aspectRatio) {
-                        displayWidth = contentSize.y * aspectRatio;
-                    } else {
-                        displayHeight = contentSize.x / aspectRatio;
-                    }
-                }
-
-                if (keepCentered.get()) {
-                    ImGui.setCursorPosX((contentSize.x - displayWidth) * 0.5f);
-                    ImGui.setCursorPosY((contentSize.y - displayHeight) * 0.5f + 18);
-                }
-                texture.renderImGui(displayWidth, displayHeight);
-            } finally {
-                ImGui.end();
+            if (element != null) {
+                BufferedImage frame = element.getData();
+                texture.upload(frame);
             }
+
+            ImVec2 contentSize = ImGui.getContentRegionAvail();
+            float displayWidth = contentSize.x;
+            float displayHeight = contentSize.y;
+
+            if (keepAspectRatio.get()) {
+                float aspectRatio = aspectX.get() / aspectY.get();
+                if (contentSize.x / contentSize.y > aspectRatio) {
+                    displayWidth = contentSize.y * aspectRatio;
+                } else {
+                    displayHeight = contentSize.x / aspectRatio;
+                }
+            }
+
+            if (keepCentered.get()) {
+                ImGui.setCursorPosX((contentSize.x - displayWidth) * 0.5f);
+                ImGui.setCursorPosY((contentSize.y - displayHeight) * 0.5f + 18);
+            }
+
+            texture.renderImGui(displayWidth, displayHeight);
+
+        } finally {
+            ImGui.end();
         }
     }
+
 
     private void renderControls() {
         if (ImGui.begin("Video Render Controls", isOp)) {

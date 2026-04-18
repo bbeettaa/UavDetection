@@ -15,14 +15,14 @@ public class KalmanObjectTracker implements ObjectTracker {
     private boolean isInitialized;
     private final IKalmanFilter transitionMatrixIKalmanFilter;
 
-    public KalmanObjectTracker(float gatingTh) {
+    public KalmanObjectTracker(double poz, double spd, double vel) {
 //        this.transitionMatrixIKalmanFilter = new TransitionMatrixIKalmanFilter(gatingTh);
-        this.transitionMatrixIKalmanFilter = new AccelerationKalmanFilter();
+        this.transitionMatrixIKalmanFilter = new AccelerationKalmanFilter(poz,spd,vel);
         this.isInitialized = false;
     }
 
     public KalmanObjectTracker() {
-        this(32);
+        this(0.1, 0.05, 0.1);
     }
 
     @Override

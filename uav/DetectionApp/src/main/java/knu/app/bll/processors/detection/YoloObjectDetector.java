@@ -16,7 +16,6 @@ import org.bytedeco.opencv.opencv_core.Rect;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class YoloObjectDetector implements ObjectDetector {
@@ -52,8 +51,15 @@ public class YoloObjectDetector implements ObjectDetector {
     }
 
     public YoloConfig getConfig() {
-        return blockingStub.getConfig(com.google.protobuf.Empty.getDefaultInstance())
-                .getConfig();
+            try {
+                return blockingStub
+                        .withDeadlineAfter(1, TimeUnit.SECONDS) // Ждем максимум секунду
+                        .getConfig(com.google.protobuf.Empty.getDefaultInstance())
+                        .getConfig();
+            } catch (Exception e) {
+                System.err.println("YOLO Server unreachable: " + e.getMessage());
+                return YoloConfig.getDefaultInstance();
+            }
     }
 
     // =============================
@@ -106,9 +112,6 @@ public class YoloObjectDetector implements ObjectDetector {
 
     @Override
     public DetectionResult detect(MatWrapper matWrapper) {
-        long frameId = matWrapper.frameIndex;
-        Mat frame = matWrapper.mat;
-
         return detectSyncAsfut(matWrapper.mat);
 //        return detectSyncAs(matWrapper.mat());
 //        return detectSync(matWrapper.mat());

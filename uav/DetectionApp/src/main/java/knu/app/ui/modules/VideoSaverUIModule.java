@@ -235,8 +235,8 @@ public class VideoSaverUIModule implements UIModule<MatWrapper> {
 
   private boolean initRecorderFromMat(Mat mat) {
     try {
-      int width = mat.cols();
-      int height = mat.rows();
+      int width = 1920;
+      int height = 1080;
       double fps = Math.max(statisticDisplayUI.getFps(), 15);
 
       recorder = new FFmpegFrameRecorder(selectedFilePath, width, height);

@@ -15,16 +15,16 @@ public class AccelerationKalmanFilter implements IKalmanFilter {
     private double currentDt = 0.033;
     private final Function physicsModel;
 
-    public AccelerationKalmanFilter() {
+    public AccelerationKalmanFilter(double poz, double spd, double vel) {
         this.C = Matrix.zero(2, 6);
         this.C.set(0, 0, 1.0);
         this.C.set(1, 1, 1.0);
 
         this.Q_root = Matrix.zero(6, 6);
 
-        for (int i = 0; i < 2; i++) this.Q_root.set(i, i, 0.0); // Позиция
-        for (int i = 2; i < 4; i++) this.Q_root.set(i, i, 0.5);  // Скорость
-        for (int i = 4; i < 6; i++) this.Q_root.set(i, i, 0.001); // Ускорение
+        for (int i = 0; i < 2; i++) this.Q_root.set(i, i, poz); // Позиция
+        for (int i = 2; i < 4; i++) this.Q_root.set(i, i, spd);  // Скорость
+        for (int i = 4; i < 6; i++) this.Q_root.set(i, i, vel); // Ускорение
 
 
         this.R_root = Matrix.zero(2, 2);
@@ -38,10 +38,16 @@ public class AccelerationKalmanFilter implements IKalmanFilter {
             public Matrix next(Matrix state, double dt) {
                 double dt2 = 0.5 * dt * dt;
                 Matrix n = Matrix.zero(6, 1);
+
+                // Положення = поточне положення + швидкість*dt + 0.5*прискорення*dt^2
                 n.set(0, 0, state.get(0, 0) + state.get(2, 0) * dt + state.get(4, 0) * dt2);
                 n.set(1, 0, state.get(1, 0) + state.get(3, 0) * dt + state.get(5, 0) * dt2);
+
+                // Швидкість = поточна швидкість + прискорення*dt
                 n.set(2, 0, state.get(2, 0) + state.get(4, 0) * dt);
                 n.set(3, 0, state.get(3, 0) + state.get(5, 0) * dt);
+
+                // Прискорення лишається тим самим
                 n.set(4, 0, state.get(4, 0));
                 n.set(5, 0, state.get(5, 0));
                 return n;
@@ -49,9 +55,10 @@ public class AccelerationKalmanFilter implements IKalmanFilter {
 
             @Override
             public Matrix jacobian(Matrix state, double dt) {
+                // Тут будується матриця Якобі для лінеаризації моделі
+                // Використовується всередині predictPhase для розрахунку ковариацій
                 double dt2 = 0.5 * dt * dt;
                 Matrix j = Matrix.zero(6, 6);
-                // Диагональ
                 for (int i = 0; i < 6; i++) j.set(i, i, 1.0);
                 // x = x + v*dt + 0.5*a*dt^2
                 j.set(0, 2, dt);

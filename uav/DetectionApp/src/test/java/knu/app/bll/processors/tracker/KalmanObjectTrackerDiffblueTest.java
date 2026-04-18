@@ -75,7 +75,7 @@ class KalmanObjectTrackerDiffblueTest {
     float gatingTh = 0.0f;
 
     // Act
-    KalmanObjectTracker actualKalmanObjectTracker = new KalmanObjectTracker(gatingTh);
+//    KalmanObjectTracker actualKalmanObjectTracker = new KalmanObjectTracker(gatingTh);
 
     // Assert
     // TODO: Add assertions on result

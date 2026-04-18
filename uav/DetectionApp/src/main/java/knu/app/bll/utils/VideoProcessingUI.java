@@ -68,7 +68,13 @@ public class VideoProcessingUI {
             }
 
             ImGui.render();
-            GL33.glViewport(0, 0, width, height);
+
+            int[] w = new int[1];
+            int[] h = new int[1];
+            GLFW.glfwGetFramebufferSize(window, w, h);
+            GL33.glViewport(0, 0, w[0], h[0]);
+
+//            GL33.glViewport(0, 0, width, height);
             GL33.glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
             GL33.glClear(GL33.GL_COLOR_BUFFER_BIT);
             imGuiGl3.renderDrawData(ImGui.getDrawData());
