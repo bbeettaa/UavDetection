@@ -16,7 +16,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.logging.Logger;
 
-public class PureVideoGrabber implements UIModule<Frame> {
+public class PureVideoGrabber  {
     private static final Logger logger = Logger.getLogger(PureVideoGrabber.class.getName());
     private final PlaybackControlVideoSource reader;
     private String videoFilePath;
@@ -36,22 +36,22 @@ public class PureVideoGrabber implements UIModule<Frame> {
         this.isOp = new ImBoolean(true);
     }
 
-    @Override
-    public String getName() {
-        return GRABBER_ID;
-    }
+//    @Override
+//    public String getName() {
+//        return GRABBER_ID;
+//    }
 
-    @Override
-    public void render() {
-        if (!isOp.get()) return;
-        ImGui.begin(GRABBER_ID, isOp);
-        videoGrabberDialog();
-        videoInformation();
-        videoParameters();
-        timeLineControl();
-        playbackControl();
-        ImGui.end();
-    }
+//    @Override
+//    public void render() {
+//        if (!isOp.get()) return;
+//        ImGui.begin(GRABBER_ID, isOp);
+//        videoGrabberDialog();
+//        videoInformation();
+//        videoParameters();
+//        timeLineControl();
+//        playbackControl();
+//        ImGui.end();
+//    }
 
     private void playbackControl() {
         if (ImGui.button(!isPlaying ? LocalizationManager.tr("status.play") : LocalizationManager.tr("status.pause"))) {
@@ -88,8 +88,8 @@ public class PureVideoGrabber implements UIModule<Frame> {
         ImGui.setCursorPosX(ImGui.getWindowSizeX() * 0.4f);
     }
 
-    private void videoGrabberDialog() {
-        if (ImGui.button(LocalizationManager.tr("videograbber.videosource.open"))) {
+    public void videoGrabberDialog() {
+//        if (ImGui.button(LocalizationManager.tr("videograbber.videosource.open"))) {
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setDialogTitle(LocalizationManager.tr("videograbber.videosource.select"));
             int result = fileChooser.showOpenDialog(null);
@@ -97,7 +97,7 @@ public class PureVideoGrabber implements UIModule<Frame> {
                 videoFilePath = fileChooser.getSelectedFile().getAbsolutePath();
                 loadVideoFile();
             }
-        }
+//        }
     }
 
     private void videoInformation() {
@@ -125,14 +125,14 @@ public class PureVideoGrabber implements UIModule<Frame> {
             reader.setFramerate(framerate.get());
     }
 
-    private void play() {
+    public void play() {
         if (videoFilePath == null) return;
         if (!isPlaying) {
             isPlaying = true;
         }
     }
 
-    @Override
+//    @Override
     public Frame execute(Frame o) {
         try {
             while (!isPlaying) {
@@ -189,6 +189,38 @@ public class PureVideoGrabber implements UIModule<Frame> {
 
     public long getCurrentFrameIndex() {
         return reader.getFrameNumber();
+    }
+
+    public boolean isPlaying() {
+        return isPlaying;
+    }
+
+    public long getCurrentPosition(){
+        return reader.getCurrentPosition();
+    }
+
+    public long getDuration(){
+        return reader.getDuration();
+    }
+
+    public void seek(long t){
+        try{
+            reader.seek(t);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void stepBackward(){
+
+    }
+
+    public void stepForward(){
+
+    }
+
+    public int getFramerate(){
+        return reader.getFramerate();
     }
 
 }

@@ -1,5 +1,7 @@
 package knu.app.bll.utils;
 
+import imgui.ImFontAtlas;
+import imgui.ImFontConfig;
 import imgui.ImGui;
 import imgui.ImGuiIO;
 import imgui.flag.ImGuiConfigFlags;
@@ -10,6 +12,12 @@ import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL33;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 
 public class VideoProcessingUI {
@@ -45,16 +53,54 @@ public class VideoProcessingUI {
         GL.createCapabilities();
     }
 
+    private static final short[] ICON_RANGE = new short[] {
+            (short) 0xF000, (short) 0xF8FF,
+            0
+    };
+
     private void initImGui() {
         ImGui.createContext();
+
         ImGuiIO io = ImGui.getIO();
+        ImFontAtlas fontAtlas = io.getFonts();
+
+        fontAtlas.addFontDefault();
+
+        try {
+            String fontPath = extractFontToTemp("/Font Awesome 7 Free-Solid-900.otf");
+
+            ImFontConfig iconConfig = new ImFontConfig();
+            iconConfig.setMergeMode(true);
+            iconConfig.setPixelSnapH(true);
+            iconConfig.setGlyphOffset(0.0f, 2.0f);
+
+            fontAtlas.addFontFromFileTTF(fontPath, 14.0f, iconConfig, ICON_RANGE);
+            fontAtlas.build();
+
+            iconConfig.destroy();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to load icon font", e);
+        }
+
         io.setIniFilename(null);
         io.addConfigFlags(ImGuiConfigFlags.DockingEnable);
         io.setWantCaptureKeyboard(true);
 
-
         imGuiGlfw.init(window, true);
         imGuiGl3.init("#version 330 core");
+    }
+
+    private String extractFontToTemp(String resourcePath) throws IOException {
+        try (InputStream in = getClass().getResourceAsStream(resourcePath)) {
+            if (in == null) {
+                throw new FileNotFoundException("Resource not found: " + resourcePath);
+            }
+
+            Path temp = Files.createTempFile("imgui-font-", ".otf");
+            Files.copy(in, temp, StandardCopyOption.REPLACE_EXISTING);
+            temp.toFile().deleteOnExit();
+            return temp.toAbsolutePath().toString();
+        }
     }
 
     private void renderLoop() {

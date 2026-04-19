@@ -140,7 +140,7 @@ public class PipelineInitializer {
 //        PlaybackControlVideoSource videoSource = new PlaybackFFmpegRawVideoSource();
         PlaybackControlVideoSource videoSource = new PlaybackControlFFmpegFrameGrabberVideoSource();
         PureVideoGrabber videoGrabber = new PureVideoGrabber(videoSource);
-        VideoRenderer videoRenderer = new VideoRenderer();
+        VideoRenderer videoRenderer = new VideoRenderer(videoGrabber);
         PipelineControlUI pipelineControlUI = new PipelineControlUI(this);
 
         AnalyticsUIModule analyticsUIModule = new AnalyticsUIModule();
@@ -205,7 +205,7 @@ public class PipelineInitializer {
         // Main menu
         MainMenuUI mainMenu = new MainMenuUI(
                 new MainMenuSection(LocalizationManager.tr("menu.section.instruments.name"),
-                        new ToggleMenuSection(videoGrabber),
+//                        new ToggleMenuSection(videoGrabber),
                         new ToggleMenuSection(videoRenderer),
                         new ToggleMenuSection(preprocessingUi),
                         new ToggleMenuSection(processingUi),
@@ -224,7 +224,7 @@ public class PipelineInitializer {
                 new DockSpaceUIModule(VideoRenderer.VEDIO_OUTPUT_ID, ProcessingModule.PROCESSOR_ID,
                         PureVideoGrabber.GRABBER_ID));
         uiModules.add(videoRenderer);
-        uiModules.add(videoGrabber);
+//        uiModules.add(videoGrabber);
         uiModules.add(mainMenu);
         uiModules.add(stat);
 //    uiModules.add(metrics);

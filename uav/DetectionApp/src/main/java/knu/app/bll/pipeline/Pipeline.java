@@ -38,6 +38,7 @@ import knu.app.bll.utils.registry.MultiObjectTrackerFactory.TrackerType;
 import knu.app.bll.utils.registry.ObjectTrackerFactory;
 import knu.app.ui.DockSpaceUIModule;
 import knu.app.ui.MainMenuUI;
+import knu.app.ui.menu.ActionMenuSection;
 import knu.app.ui.menu.MainMenuSection;
 import knu.app.ui.menu.StatisticMenuSection;
 import knu.app.ui.menu.ToggleMenuSection;
@@ -128,7 +129,7 @@ public class Pipeline {
 
         PlaybackControlVideoSource videoSource = new PlaybackControlFFmpegFrameGrabberVideoSource();
         videoGrabber = new PureVideoGrabber(videoSource);
-        videoRenderer = new VideoRenderer();
+        videoRenderer = new VideoRenderer(videoGrabber);
 
         AnalyticsUIModule analyticsUIModule = new AnalyticsUIModule();
         TrajectoryRendererUI trajectoryRendererUI = new TrajectoryRendererUI(renderer);
@@ -160,11 +161,23 @@ public class Pipeline {
 
         createPipeline(videoGrabber, frameReaderBuffer, frameWriterBuffer, videoRenderer, preprocessingUi, processingBuffer, processingUi);
 
-        MainMenuUI mainMenu = new MainMenuUI(new MainMenuSection(LocalizationManager.tr("menu.section.instruments.name"), new ToggleMenuSection(videoGrabber), new ToggleMenuSection(videoRenderer), new ToggleMenuSection(preprocessingUi), new ToggleMenuSection(processingUi), new ToggleMenuSection(analyticsUIModule), new ToggleMenuSection(videoSaverUIModule)), new MainMenuSection(LocalizationManager.tr("menu.section.statistics.name"), new StatisticMenuSection(stat), new ToggleMenuSection(currentObjectsUIModule)));
+        MainMenuUI mainMenu = new MainMenuUI(
+                new MainMenuSection(LocalizationManager.tr("menu.section.files.name"),
+                        new ActionMenuSection(LocalizationManager.tr("menu.section.files.open"), () -> videoGrabber.videoGrabberDialog())),
+                new MainMenuSection(LocalizationManager.tr("menu.section.instruments.name"),
+//                        new ToggleMenuSection(videoGrabber),
+                        new ToggleMenuSection(videoRenderer),
+                        new ToggleMenuSection(preprocessingUi),
+                        new ToggleMenuSection(processingUi),
+                        new ToggleMenuSection(analyticsUIModule),
+                        new ToggleMenuSection(videoSaverUIModule)),
+                new MainMenuSection(LocalizationManager.tr("menu.section.statistics.name"),
+                        new StatisticMenuSection(stat),
+                        new ToggleMenuSection(currentObjectsUIModule)));
 
         uiModules.add(new DockSpaceUIModule(VideoRenderer.VEDIO_OUTPUT_ID, ProcessingModule.PROCESSOR_ID, PureVideoGrabber.GRABBER_ID));
         uiModules.add(videoRenderer);
-        uiModules.add(videoGrabber);
+//        uiModules.add(videoGrabber);
         uiModules.add(mainMenu);
         uiModules.add(stat);
         uiModules.add(currentObjectsUIModule);

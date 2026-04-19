@@ -84,6 +84,7 @@ public class PlaybackControlFFmpegFrameGrabberVideoSource implements PlaybackCon
       notifyListeners();
       grabber.setTimestamp(timestamp * 1000);
       lastTimestamp = -1;
+      grab();
     } catch (Exception e) {
       throw new IOException(e);
     }
